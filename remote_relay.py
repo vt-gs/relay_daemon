@@ -17,29 +17,18 @@ class remote_relay(object):
         self.timeout    = timeout   #Socket Timeout interval, default = 1.0 seconds
         self.sock.settimeout(timeout)   #set socket timeout
         self.retries    = retries   #Number of times to attempt reconnection, default = 2
-        self.cmd_az     = 0         #Commanded Azimuth, used in Set Position Command
-        self.cmd_el     = 0         #Commanded Elevation, used in Set Position command
-        self.cur_az     = 0         #  Current Azimuth, in degrees, from feedback
-        self.cur_el     = 0         #Current Elevation, in degrees, from feedback
-        self.ph         = 10        #  Azimuth Resolution, in pulses per degree, from feedback, default = 10
-        self.pv         = 10        #Elevation Resolution, in pulses per degree, from feedback, default = 10
-        self.feedback   = ''        #Feedback data from socket
-        self.stop_cmd   = bytearray()   #Stop Command Message
-        self.status_cmd = bytearray()   #Status Command Message
-        self.set_cmd    = bytearray()   #Set Command Message
-        for x in [0x57,0,0,0,0,0,0,0,0,0,0,0x0F,0x20]: self.stop_cmd.append(x)
-        for x in [0x57,0,0,0,0,0,0,0,0,0,0,0x1F,0x20]: self.status_cmd.append(x)
-        for x in [0x57,0,0,0,0,0x0a,0,0,0,0,0x0a,0x2F,0x20]: self.set_cmd.append(x) #PH=PV=0x0a, 0x0a = 10, BIG-RAS/HR is 10 pulses per degree
+        
+        self.status_cmd = "$,S,0,0,0,0"
 
     def connect(self):
-        #connect to md01 controller
+        #connect to Remote Relay controller
         try:
             self.sock.connect((self.ip, self.port))
-            #upon connection, get status to determine current antenna position
+            #upon connection, get status to determine current relay positions
             self.get_status()
         except socket.error as msg:
             print "Exception Thrown: " + str(msg) + " (" + str(self.timeout) + "s)"
-            print "Unable to connect to MD01 at IP: " + str(self.ip) + ", Port: " + str(self.port)  
+            print "Unable to connect to Remote Relay at IP: " + str(self.ip) + ", Port: " + str(self.port)  
             print "Terminating Program..."
             sys.exit()
 
@@ -48,7 +37,7 @@ class remote_relay(object):
         self.sock.close()
     
     def get_status(self):
-        #get azimuth and elevation feedback from md01
+        #get relay position feedback from controller
         try:
             self.sock.send(self.status_cmd) 
             self.feedback = self.recv_data()          
