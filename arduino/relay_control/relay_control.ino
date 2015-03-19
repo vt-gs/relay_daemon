@@ -157,46 +157,6 @@ void ADC_Feedback(boolean source){
   intface->println(adc_volt[7]);
 }
 
-void ADC_Network_Feedback(){
-  server.print("$,V,");
-  for (int i = 0; i < 7; i++){ 
-    server.print(adc_volt[i], DEC);
-    server.print(",");
-  }
-  server.println(adc_volt[7], DEC);
-}
-
-void ADC_Serial_Feedback(){
-  Serial.print("$,V,");
-  for (int i = 0; i < 7; i++){ 
-    Serial.print(adc_volt[i], DEC);
-    Serial.print(",");
-  }
-  Serial.println(adc_volt[7], DEC);
-}
-
-void Relay_Network_Feedback(){
-  server.print("$,R,");
-  server.print(spdt_a, BIN);
-  server.print(",");
-  server.print(spdt_b, BIN);
-  server.print(",");
-  server.print(dpdt_a, BIN);
-  server.print(",");
-  server.println(dpdt_b, BIN);
-}
-
-void Relay_Serial_Feedback(){
-  Serial.print("$,R,");
-  Serial.print(spdt_a, BIN);
-  Serial.print(",");
-  Serial.print(spdt_b, BIN);
-  Serial.print(",");
-  Serial.print(dpdt_a, BIN);
-  Serial.print(",");
-  Serial.println(dpdt_b, BIN);
-}
-
 void Parse_Relay(String data){
   //Convert String Relay Bank String Value to Integer
   spdt_a = String_To_Int(data.substring(4, 7));   //SPDT A conversion
