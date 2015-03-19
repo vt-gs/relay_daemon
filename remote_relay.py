@@ -17,8 +17,14 @@ class remote_relay(object):
         self.timeout    = timeout   #Socket Timeout interval, default = 1.0 seconds
         self.sock.settimeout(timeout)   #set socket timeout
         self.retries    = retries   #Number of times to attempt reconnection, default = 2
-        
-        self.status_cmd = "$,S,0,0,0,0"
+        self.feedback   = ''        #contains received data from Relay Bank
+        self.spdta      = 0 #byte containing state information for SPDT Relay Bank A (1-8)
+        self.spdtb      = 0 #byte containing state information for SPDT Relay Bank B (9-16)
+        self.dpdta      = 0 #byte containing state information for DPDT Relay Bank A (1-8)
+        self.dpdtb      = 0 #byte containing state information for DPDT Relay Bank B (9-16)
+        self.status_cmd = "$,Q"
+        self.adc_cmd    = "$,V"
+        self.relay_cmd  = "$,R"
 
     def connect(self):
         #connect to Remote Relay controller
@@ -33,21 +39,21 @@ class remote_relay(object):
             sys.exit()
 
     def disconnect(self):
-        #disconnect from md01 controller
+        #disconnect from relay controller
         self.sock.close()
     
     def get_status(self):
         #get relay position feedback from controller
         try:
             self.sock.send(self.status_cmd) 
-            self.feedback = self.recv_data()          
+            time.sleep(0.250)
+            self.feedback = self.sock.recv(1024)    
         except socket.error as msg:
             print "Exception Thrown: " + str(msg) + " (" + str(self.timeout) + "s)"
             print "Closing socket, Terminating program...."
             self.sock.close()
             sys.exit()
         self.convert_feedback()  
-        return self.cur_az, self.cur_el  
 
     def set_stop(self):
         #stop md01 immediately
@@ -75,34 +81,11 @@ class remote_relay(object):
             self.sock.close()
             sys.exit()
 
-    def recv_data(self):
-        #receive socket data
-        feedback = ''
-        while True:
-            c = self.sock.recv(1)
-            if hexlify(c) == '20':
-                feedback += c
-                break
-            else:
-                feedback += c
-        print hexlify(feedback)
-        return feedback
-
     def convert_feedback(self):
-        h1 = ord(self.feedback[1])
-        h2 = ord(self.feedback[2])
-        h3 = ord(self.feedback[3])
-        h4 = ord(self.feedback[4])
-        #print h1, h2, h3, h4
-        self.cur_az = (h1*100.0 + h2*10.0 + h3 + h4/10.0) - 360.0
-        self.ph = ord(self.feedback[5])
-
-        v1 = ord(self.feedback[6])
-        v2 = ord(self.feedback[7])
-        v3 = ord(self.feedback[8])
-        v4 = ord(self.feedback[9])
-        self.cur_el = (v1*100.0 + v2*10.0 + v3 + v4/10.0) - 360.0
-        self.pv = ord(self.feedback[10])
+        data_lines = self.feedback.split('\n')
+        print len(data_lines)
+        for i in range(len(data_lines)):
+            print data_lines[i]
 
     def format_set_cmd(self):
         #make sure cmd_az in range 0 to 360
