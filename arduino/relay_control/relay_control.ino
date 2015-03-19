@@ -63,7 +63,7 @@ void setup() {
   pinMode(A13, OUTPUT);
   pinMode(A14, OUTPUT);
   pinMode(A15, OUTPUT);
-  for(int index = 0; index < 32; index++){
+  for(int index = 0; index < 8; index++){
     pinMode(adc_pin[index], INPUT);
   }
 }
@@ -106,7 +106,7 @@ void loop(){
     Process_Command(netIn, false);
     netIn = "";
   }
-  delay(500);
+  delay(25);
     
 } 
 
