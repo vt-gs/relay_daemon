@@ -8,6 +8,7 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
+#include <Print.h>
 
 // network configuration.  gateway and subnet are optional.
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};  
@@ -16,6 +17,7 @@ byte gateway[] = {192, 168, 42, 1};
 byte subnet[] = {255, 255, 255, 0};
 unsigned int localport = 2000;
 EthernetServer server = EthernetServer(localport);
+
 
 //Global Variable Definition
 String serIn;   // stores incoming serial commands
@@ -36,8 +38,10 @@ String dpdt_b_str; //dpdt relay bank B, relays 9 - 16;
 //Relay Pin Configuration
 int relay[] = {22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53};
 
-//ADC Pin Configuration
-int a_d_c[] = {8,9,10,11,12,13,14,15};
+//ADC Configuration
+int adc_pin[] = {0,1,2,3,4,5,6,7};  //ADC Pin assignments
+int adc_val[] = {0,0,0,0,0,0,0,0};        //ADC values
+float adc_volt[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0}; //ADC voltages
 
 void setup() {
   // initialize the ethernet device
@@ -59,6 +63,9 @@ void setup() {
   pinMode(A13, OUTPUT);
   pinMode(A14, OUTPUT);
   pinMode(A15, OUTPUT);
+  for(int index = 0; index < 32; index++){
+    pinMode(adc_pin[index], INPUT);
+  }
 }
 
 void loop(){
@@ -83,49 +90,93 @@ void loop(){
     }
   }
   
+  //Always Read ADC Values
+  for (int i = 0; i < 8; i++){
+    delay(10);
+    adc_val[i] = analogRead(adc_pin[i]);
+    adc_volt[i] = fmap(adc_val[i], 0, 1023, 0.0, 5.0);
+  }
+  
   //Decide which command to listen too, Serial has higher priority
   if (serIn.length() > 0){
-    Parse_Input_Data(serIn, true);
+    Process_Command(serIn, true);
     serIn = "";
   }
   else if (netIn.length() > 0){
-    Parse_Input_Data(netIn, false);
+    Process_Command(netIn, false);
     netIn = "";
   }
   delay(500);
     
 } 
 
-void Parse_Input_Data(String data, boolean src){
+void Process_Command(String data, boolean src){
   if ((data.length() > 0) && (data.charAt(0) == '$')) {// if it is a valid string
 //    if ((dataIn.length() == 19) && (dataIn.charAt(2) == 'R')) { // Relay Control Command
     if (data.charAt(2) == 'R') { // Relay Control Command       
-      
-      Parse_Relay(data);
-      Write_Relay();
-      
-      if (src == true){
-        Return_Serial_Feedback();
+      if (data.length() > 4){
+        Parse_Relay(data);
+        Write_Relay();
       }
-      else if (src == false){
-        Return_Network_Feedback();
-      }
+      //if (src == true){ Relay_Serial_Feedback(); }
+      //else if (src == false){ Relay_Network_Feedback(); }
+      Relay_Feedback(src);
     }
     else if(data.charAt(2) == 'Q') { // Relay Status Query Command   
-      if (src == true){
-        Return_Serial_Feedback();
-      }
-      else if (src == false){
-        Return_Network_Feedback();
-      }
+      Relay_Feedback(src);
+      delay(10);
+      ADC_Feedback(src);
     }
     else if(data.charAt(2) == 'V'){//ADC Voltage Read Command
+      ADC_Feedback(src);
     }
   }  
 }
+void Relay_Feedback(boolean source){
+  Print* intface = &Serial;
+  if (source == true){ intface = &Serial; }
+  else if (source == false){ intface = &server; }
+  intface->print("$,R,");
+  intface->print(spdt_a, DEC);
+  intface->print(",");
+  intface->print(spdt_b, DEC);
+  intface->print(",");
+  intface->print(dpdt_a, DEC);
+  intface->print(",");
+  intface->println(dpdt_b, DEC);
+}
+void ADC_Feedback(boolean source){
+  Print* intface = &Serial;
+  if (source == true){ intface = &Serial; }
+  else if (source == false){ intface = &server; }
+  intface->print("$,V,");
+  for (int i = 0; i < 7; i++){ 
+    intface->print(adc_volt[i]);
+    intface->print(",");
+  }
+  intface->println(adc_volt[7]);
+}
 
-void Return_Network_Feedback(){
-  server.print("$,");
+void ADC_Network_Feedback(){
+  server.print("$,V,");
+  for (int i = 0; i < 7; i++){ 
+    server.print(adc_volt[i], DEC);
+    server.print(",");
+  }
+  server.println(adc_volt[7], DEC);
+}
+
+void ADC_Serial_Feedback(){
+  Serial.print("$,V,");
+  for (int i = 0; i < 7; i++){ 
+    Serial.print(adc_volt[i], DEC);
+    Serial.print(",");
+  }
+  Serial.println(adc_volt[7], DEC);
+}
+
+void Relay_Network_Feedback(){
+  server.print("$,R,");
   server.print(spdt_a, BIN);
   server.print(",");
   server.print(spdt_b, BIN);
@@ -135,8 +186,8 @@ void Return_Network_Feedback(){
   server.println(dpdt_b, BIN);
 }
 
-void Return_Serial_Feedback(){
-  Serial.print("$,");
+void Relay_Serial_Feedback(){
+  Serial.print("$,R,");
   Serial.print(spdt_a, BIN);
   Serial.print(",");
   Serial.print(spdt_b, BIN);
@@ -171,4 +222,7 @@ int String_To_Int(String data_string){
   return val;
 }
 
+float fmap(float x, float in_min, float in_max, float out_min, float out_max){
+ return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
