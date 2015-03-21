@@ -18,6 +18,8 @@ class remote_relay(object):
         self.sock.settimeout(timeout)   #set socket timeout
         self.retries    = retries   #Number of times to attempt reconnection, default = 2
         self.feedback   = ''        #contains received data from Relay Bank
+        self.relays     = [0,0,0,0]
+        self.adcs       = [0,0,0,0,0,0,0,0]
         self.spdta      = 0 #byte containing state information for SPDT Relay Bank A (1-8)
         self.spdtb      = 0 #byte containing state information for SPDT Relay Bank B (9-16)
         self.dpdta      = 0 #byte containing state information for DPDT Relay Bank A (1-8)
@@ -43,7 +45,7 @@ class remote_relay(object):
         self.sock.close()
     
     def get_status(self):
-        #get relay position feedback from controller
+        #get relay position and ADC feedback from controller
         try:
             self.sock.send(self.status_cmd) 
             time.sleep(0.250)
@@ -53,70 +55,56 @@ class remote_relay(object):
             print "Closing socket, Terminating program...."
             self.sock.close()
             sys.exit()
-        self.convert_feedback()  
+        self.parse_status_feedback()  
 
-    def set_stop(self):
-        #stop md01 immediately
+    def get_relays(self):
+        #get relay position and ADC feedback from controller
         try:
-            self.sock.send(self.stop_cmd) 
-            self.feedback = self.recv_data()          
+            self.sock.send('$,R') 
+            time.sleep(0.250)
+            self.feedback = self.sock.recv(1024)    
         except socket.error as msg:
             print "Exception Thrown: " + str(msg) + " (" + str(self.timeout) + "s)"
             print "Closing socket, Terminating program...."
             self.sock.close()
             sys.exit()
-        self.convert_feedback()
-        return self.cur_az, self.cur_el   
+        self.parse_relay_feedback(self.feedback)  
 
-    def set_position(self, az, el):
-        #set azimuth and elevation of md01
-        self.cmd_az = az
-        self.cmd_el = el
-        self.format_set_cmd()
+    def get_adcs(self):
+        #get relay position and ADC feedback from controller
         try:
-            self.sock.send(self.set_cmd) 
+            self.sock.send('$,V') 
+            time.sleep(0.250)
+            self.feedback = self.sock.recv(1024)    
         except socket.error as msg:
-            print "Exception Thrown: " + str(msg)
+            print "Exception Thrown: " + str(msg) + " (" + str(self.timeout) + "s)"
             print "Closing socket, Terminating program...."
             self.sock.close()
             sys.exit()
+        self.parse_relay_feedback(self.feedback)  
 
-    def convert_feedback(self):
+    def parse_status_feedback(self):
+        #$,R,spdta,sptdb,dpdta,dpdtb
+        #$,V,adc1,adc2,adc3,adc4,adc5,adc6,adc7,adc8
         data_lines = self.feedback.split('\n')
-        print len(data_lines)
-        for i in range(len(data_lines)):
-            print data_lines[i]
+        self.parse_relay_feedback(data_lines[0])
+        self.parse_adc_feedback(data_lines[1])
 
-    def format_set_cmd(self):
-        #make sure cmd_az in range 0 to 360
-        if   (self.cmd_az>360): self.cmd_az = self.cmd_az - 360
-        elif (self.cmd_az < 0): self.cmd_az = self.cmd_az + 360
-        #make sure cmd_el in range 0 to 180
-        if   (self.cmd_el < 0): self.cmd_el = 0
-        elif (self.cmd_el>180): self.cmd_el = 180
-        #convert commanded az, el angles into strings
-        cmd_az_str = str(int((float(self.cmd_az) + 360) * self.ph))
-        cmd_el_str = str(int((float(self.cmd_el) + 360) * self.pv))
-        #print target_az, len(target_az)
-        #ensure strings are 4 characters long, pad with 0s as necessary
-        if   len(cmd_az_str) == 1: cmd_az_str = '000' + cmd_az_str
-        elif len(cmd_az_str) == 2: cmd_az_str = '00'  + cmd_az_str
-        elif len(cmd_az_str) == 3: cmd_az_str = '0'   + cmd_az_str
-        if   len(cmd_el_str) == 1: cmd_el_str = '000' + cmd_el_str
-        elif len(cmd_el_str) == 2: cmd_el_str = '00'  + cmd_el_str
-        elif len(cmd_el_str) == 3: cmd_el_str = '0'   + cmd_el_str
-        #print target_az, len(str(target_az)), target_el, len(str(target_el))
-        #update Set Command Message
-        self.set_cmd[1] = cmd_az_str[0]
-        self.set_cmd[2] = cmd_az_str[1]
-        self.set_cmd[3] = cmd_az_str[2]
-        self.set_cmd[4] = cmd_az_str[3]
-        self.set_cmd[5] = self.ph
-        self.set_cmd[6] = cmd_el_str[0]
-        self.set_cmd[7] = cmd_el_str[1]
-        self.set_cmd[8] = cmd_el_str[2]
-        self.set_cmd[9] = cmd_el_str[3]
-        self.set_cmd[10] = self.pv
+    def parse_relay_feedback(self, data_line):
+        data = data_line.split(',')
+        if (data[0] == '$') and (data[1] == 'R'): #Valid Relay Feedback Message
+            for i in range(4):
+                self.relays[i] = int(data[i+2].strip())
+                print bin(self.relays[i])
+            print self.relays
+
+    def parse_adc_feedback(self, data_line):
+        data = data_line.split(',')
+        if (data[0] == '$') and (data[1] == 'V'): #Valid ADC Feedback Message
+            for i in range(8): self.adcs[i] = float(data[i+2].strip())
+            print self.adcs
+
+    
 
 
 

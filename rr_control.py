@@ -24,18 +24,11 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     #--------END Command Line option parser-------------------------------------------------
     
-    #tt = Tracker_Thread(options)
-    #dt = Display_Thread(options, tt)
-    #tt.daemon = True
-    #dt.daemon = True
-    #tt.start()
-    #dt.run()
-    
     relay = remote_relay(options.ip, options.port)
     relay.connect()
 
     while True:
-        x = raw_input('Send command: R=Set Relay, V=Query Voltage, Q=Query All: ')
+        x = raw_input('Send command: r=Set Relay, v=Query Voltage, q=Query All, e=Exit: ')
         if (x == 'r'):  
             pass
         elif (x == 'v'):  
