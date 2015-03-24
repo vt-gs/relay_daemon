@@ -14,6 +14,7 @@ class main_widget(QtGui.QWidget):
         super(main_widget, self).__init__()
         self.initUI()
         
+        
     def initUI(self):
         self.grid = QtGui.QGridLayout()
         self.setLayout(self.grid)
@@ -36,8 +37,14 @@ class relay_check_box(QtGui.QCheckBox):
         
     def initUI(self):
         cb1 = QtGui.QCheckBox(self.name, self)
+        
         #cb1.move(20, 20)
         #cb1.toggle()
+        cb1.setStyleSheet("QCheckBox {  font-size: 12px; \
+                                        font-weight:bold; \
+                                        background-color:black; \
+                                        color:rgb(0,255,0); }")
+       
         cb1.stateChanged.connect(self.state_change)
 
     def state_change(self, state):
@@ -57,19 +64,19 @@ class remote_relay_gui(QtGui.QMainWindow):
         self.initUI()
         
     def initUI(self): 
+
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Background,QtCore.Qt.black)
+        self.setPalette(palette)
+
         self.setCentralWidget(self.main_window)
         exitAction = QtGui.QAction('Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
-        exportAction = QtGui.QAction('Export', self)
-        exportAction.setShortcut('Ctrl+E')
-        exportAction.triggered.connect(QtGui.qApp.quit)
-
         menubar = self.menuBar()
         self.fileMenu = menubar.addMenu('&File')
         self.fileMenu.addAction(exitAction)
-        self.fileMenu.addAction(exportAction)
         
         #intialize Tabs
         self.Init_Tabs()  
@@ -137,21 +144,25 @@ class remote_relay_gui(QtGui.QMainWindow):
 
     def SPDT_CheckBox_Init(self):
         self.spdta_gb = QtGui.QGroupBox(self)
-        self.spdta_gb.setStyleSheet("QGroupBox { border:2px solid rgb(0, 0, 0); }")
+        self.spdta_gb.setStyleSheet("QGroupBox { border:2px solid rgb(255, 0, 0); background-color : rgb(0,0,0); color : rgb(0,255,0); }")
         self.gb_a_grid = QtGui.QGridLayout(self.spdta_gb)
 
         self.spdtb_gb = QtGui.QGroupBox(self)
-        self.spdtb_gb.setStyleSheet("QGroupBox { border:2px solid rgb(0, 0, 0); }")
+        self.spdtb_gb.setStyleSheet("QGroupBox { border:2px solid rgb(255, 0, 0); background-color : rgb(0,0,0); color : rgb(0,255,0); }")
         self.gb_b_grid = QtGui.QGridLayout(self.spdtb_gb)
 
         cont1 = QtGui.QLabel('Control')
-        cont1.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline}")
+        cont1.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline; background-color : rgb(0,0,0); color:rgb(255,255,255) ; }")
+        cont1.setAlignment(QtCore.Qt.AlignCenter)
+        
         label1 = QtGui.QLabel('Relay Function')
-        label1.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline}")
+        label1.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline; background-color : rgb(0,0,0); color:rgb(255,255,255) ; }")
+        label1.setAlignment(QtCore.Qt.AlignLeft)
+
         cont2 = QtGui.QLabel('Control')
-        cont2.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline}")
+        cont2.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline; background-color : rgb(0,0,0); color:rgb(255,255,255) ; }")
         label2 = QtGui.QLabel('Relay Function')
-        label2.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline}")
+        label2.setStyleSheet("QLabel { font-size: 16px;font-weight:bold; text-decoration:underline; background-color : rgb(0,0,0); color:rgb(255,255,255) ; }")
 
         self.gb_a_grid.addWidget(cont1, 0,0,1,1)
         self.gb_a_grid.addWidget(label1, 0,1,1,1)
@@ -223,8 +234,17 @@ class remote_relay_gui(QtGui.QMainWindow):
 
     def Init_Tabs(self):
         self.tabs = QtGui.QTabWidget()
+        #self.tabs.setStyleSheet('QTabBar::tab {background-color: black;}')
+        self.tabs.setStyleSheet('QTabBar::tab:selected {background-color: rgb(0,0,0);} QTabBar::tab:!selected {background-color: rgb(0,0,0);}')
         
-        self.spdt_tab = QtGui.QWidget()	
+        #self.tabs.tabBar().setTabBackgroundColor(0,QtCore.Qt.black)
+        self.spdt_tab = QtGui.QWidget()
+        #self.spdt_tab.setStyleSheet('QWidget {background-color: black;}')
+        
+        #self.spdt_tab.setAutoFillBackground(True)
+        #palette = self.tabs.palette()
+        #palette.setColor(self.spdt_tab.backgroundRole(), QtCore.Qt.black)
+        #self.spdt_tab.setPalette(palette)
         self.spdt_tab.grid = QtGui.QGridLayout()
         self.tabs.addTab(self.spdt_tab,"SPDT Relays")
         
@@ -240,6 +260,7 @@ class remote_relay_gui(QtGui.QMainWindow):
         self.settings_tab.grid = QtGui.QGridLayout()	
         self.tabs.addTab(self.settings_tab,"Settings")
         
+        self.tabs.tabBar().setTabTextColor(0, Qt.QColor.fromRgb(0,255,0))
 
 def main():
     app = QtGui.QApplication(sys.argv)
