@@ -9,7 +9,7 @@ import threading
 from optparse import OptionParser
 from binascii import *
 from remote_relay import *
-from rr_gui import *
+from rr_main_gui import *
 #from curses_display import *
 
 
