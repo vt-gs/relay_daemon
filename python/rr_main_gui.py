@@ -5,7 +5,7 @@ from PyQt4 import QtCore
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 import numpy as np
-
+from datetime import datetime as date
 import sys
 from Relay_QCheckBox import *
 
@@ -16,21 +16,23 @@ class MainWindow(QtGui.QWidget):
         self.resize(785, 275)
         self.setFixedWidth(785)
         self.setFixedHeight(275)
-        self.setWindowTitle('Remote Relay Control')
+        self.setWindowTitle('Remote Relay Control v1.0')
         self.setContentsMargins(0,0,0,0)
-        self.spdt_cb = []   #list to hold spdt relay check boxes
-        self.dpdt_cb = []   #list to hold dpdt relay check boxes
-        self.spdt_a_value = 0   #SPDT BANK A Value, 0-255
-        self.spdt_b_value = 0   #SPDT BANK B Value, 0-255
-        self.dpdt_a_value = 0   #DPDT BANK A Value, 0-255
-        self.dpdt_b_value = 0   #DPDT BANK B Value, 0-255
-
-        self.set_relay_msg = '' # '$,R,AAA,BBB,CCC,DDD'
-
+        self.spdt_cb        = []   #list to hold spdt relay check boxes
+        self.dpdt_cb        = []   #list to hold dpdt relay check boxes
+        self.spdt_a_value   = 0   #SPDT BANK A Value, 0-255
+        self.spdt_b_value   = 0   #SPDT BANK B Value, 0-255
+        self.dpdt_a_value   = 0   #DPDT BANK A Value, 0-255
+        self.dpdt_b_value   = 0   #DPDT BANK B Value, 0-255
+        self.relays_cmd     = [0,0,0,0] # Relay Register Value Commanded, 0-225, [SPDTA, SPDTB, DPDTA, DPDTB]
+        self.relay_callback = None #Callback accessor for remote relay control
+        self.set_relay_msg  = '' # '$,R,AAA,BBB,CCC,DDD'
+        self.connected      = False  #Connection Status to remote relay control box
+        self.adc_interval   = 1000 #ADC Auto Update Interval in milliseconds
         self.initUI()
         self.darken()
         self.setFocus()
-
+        
     def initUI(self):
         self.initFrames()
         self.initSPDTCheckBoxes()
@@ -41,54 +43,174 @@ class MainWindow(QtGui.QWidget):
         self.connectSignals()
 
     def connectSignals(self):
-        self.resetButton.clicked.connect(self.resetButtonEvent)  
+        self.resetButton.clicked.connect(self.resetButtonEvent) 
+        self.connectButton.clicked.connect(self.connectButtonEvent)
+        self.adc_auto_cb.stateChanged.connect(self.catchADCAutoEvent)
+        self.readStatusButton.clicked.connect(self.readStatusButtonEvent)
+        self.readRelayButton.clicked.connect(self.readRelayButtonEvent)
+        self.readVoltButton.clicked.connect(self.readVoltButtonEvent)
+        self.updateButton.clicked.connect(self.updateButtonEvent)
+        QtCore.QObject.connect(self.ADCtimer, QtCore.SIGNAL('timeout()'), self.readVoltButtonEvent)
+        QtCore.QObject.connect(self.adc_interval_le, QtCore.SIGNAL('editingFinished()'), self.updateADCInterval)
+        QtCore.QObject.connect(self.ipAddrTextBox, QtCore.SIGNAL('editingFinished()'), self.updateIPAddress)
+        QtCore.QObject.connect(self.portTextBox, QtCore.SIGNAL('editingFinished()'), self.updatePort)
+    
+
+    def updateButtonEvent(self):
+        a = self.relay_callback.set_relays(self.relays_cmd)
+        if (a != -1): self.updateRelayStatus(a)
+    
+    def catchCheckBoxEvent(self, reltype, relay_id, value):
+        #Catches Relay_QCheckBox Event
+        #print str(reltype) + str(relay_id) + " " + str(value)
+        if   (reltype == 'SPDT'):
+            if (relay_id <= 8): self.relays_cmd[0] += value #SPDTA
+            else:  self.relays_cmd[1] += value #SPDTB
+        elif (reltype == 'DPDT'):
+            if (relay_id <= 8): self.relays_cmd[2] += value #DPDTA
+            else:  self.relays_cmd[3] += value #DPDTB
+        #self.formatSetRelayMsg()
+
+    def formatSetRelayMsg(self):
+        self.set_relay_msg = '$,R,'
+        #SPDT A
+        if   (len(str(self.relays_cmd[0])) == 1): self.set_relay_msg += '00' + str(self.relays_cmd[0])
+        elif (len(str(self.relays_cmd[0])) == 2): self.set_relay_msg += '0'  + str(self.relays_cmd[0])
+        elif (len(str(self.relays_cmd[0])) == 3): self.set_relay_msg +=        str(self.relays_cmd[0])
+        self.set_relay_msg += ','
+        #SPDT B
+        if   (len(str(self.relays_cmd[1])) == 1): self.set_relay_msg += '00' + str(self.relays_cmd[1])
+        elif (len(str(self.relays_cmd[1])) == 2): self.set_relay_msg += '0'  + str(self.relays_cmd[1])
+        elif (len(str(self.relays_cmd[1])) == 3): self.set_relay_msg +=        str(self.relays_cmd[1])
+        self.set_relay_msg += ','
+        #DPDT A
+        if   (len(str(self.relays_cmd[2])) == 1): self.set_relay_msg += '00' + str(self.relays_cmd[2])
+        elif (len(str(self.relays_cmd[2])) == 2): self.set_relay_msg += '0'  + str(self.relays_cmd[2])
+        elif (len(str(self.relays_cmd[2])) == 3): self.set_relay_msg +=        str(self.relays_cmd[2])
+        self.set_relay_msg += ','
+        #DPDT B
+        if   (len(str(self.relays_cmd[3])) == 1): self.set_relay_msg += '00' + str(self.relays_cmd[3])
+        elif (len(str(self.relays_cmd[3])) == 2): self.set_relay_msg += '0'  + str(self.relays_cmd[3])
+        elif (len(str(self.relays_cmd[3])) == 3): self.set_relay_msg +=        str(self.relays_cmd[3])
+
+        print self.set_relay_msg
+
+    def readVoltButtonEvent(self):
+        a = self.relay_callback.get_adcs()
+        if (a != -1): self.updateADC(a)
+
+    def readRelayButtonEvent(self):
+        a = self.relay_callback.get_relays()
+        if (a != -1): self.updateRelayStatus(a)
+
+    def readStatusButtonEvent(self):
+        #print 'GUI|  Read Status Button Clicked'
+        a,b = self.relay_callback.get_status()
+        #print a,b
+        if (a != -1): self.updateRelayStatus(a)
+        if (b != -1): self.updateADC(b)
+        #else: 
+        #    print 'GUI|  Not Connected to Relay Controller'
+        #    print 'GUI|  Must Connect to Relay Controller before reading Status'
+
+    def updateRelayStatus(self, rel):
+        mask = 0b00000001
+        for i in range(8):
+            #SPDT A
+            if ((rel[0]>>i) & mask): self.spdt_cb[i].setCheckState(QtCore.Qt.Checked)
+            else: self.spdt_cb[i].setCheckState(QtCore.Qt.Unchecked)
+            #SPDT B
+            if ((rel[1]>>i) & mask): self.spdt_cb[i+8].setCheckState(QtCore.Qt.Checked)
+            else: self.spdt_cb[i+8].setCheckState(QtCore.Qt.Unchecked)
+            #DPDT A
+            if ((rel[2]>>i) & mask): self.dpdt_cb[i].setCheckState(QtCore.Qt.Checked)
+            else: self.dpdt_cb[i].setCheckState(QtCore.Qt.Unchecked)
+            #DPDT B
+            if ((rel[3]>>i) & mask): self.dpdt_cb[i+8].setCheckState(QtCore.Qt.Checked)
+            else: self.dpdt_cb[i+8].setCheckState(QtCore.Qt.Unchecked)
+
+    def updateADC(self,adcs):
+        for i in range(len(adcs)):
+            self.field_value[i] = str(adcs[i]) + 'V'
+            self.adc_field_values_qlabels[i].setText(self.field_value[i])
+
+    def catchADCAutoEvent(self, state):
+        CheckState = (state == QtCore.Qt.Checked)
+        if CheckState == True:  
+            self.ADCtimer.start()
+            print self.getTimeStampGMT() + "GUI|  Started ADC Auto Update, Interval: " + str(self.adc_interval) + " [ms]"
+        else:
+            self.ADCtimer.stop()
+            print self.getTimeStampGMT() + "GUI|  Stopped ADC Auto Update"
+
+    def updateADCInterval(self):
+        self.adc_interval = float(self.adc_interval_le.text()) * 1000.0
+        self.ADCtimer.setInterval(self.adc_interval)
+        print self.getTimeStampGMT() + "GUI|  Updated ADC Auto Interval to " + str(self.adc_interval) + " [ms]"
+
+    def connectButtonEvent(self):
+        if (not self.connected):  #Not connected, attempt to connect
+            self.connected = self.relay_callback.connect()
+            if (self.connected): 
+                self.connectButton.setText('Disconnect')
+                self.net_label.setText("Connected")
+                self.net_label.setStyleSheet("QLabel {  font-weight:bold; color:rgb(0,255,0) ; }")
+                self.ipAddrTextBox.setStyleSheet("QLineEdit {background-color:rgb(225,225,225); color:rgb(0,0,0);}")
+                self.portTextBox.setStyleSheet("QLineEdit {background-color:rgb(225,225,225); color:rgb(0,0,0);}")
+                self.ipAddrTextBox.setEnabled(False)
+                self.portTextBox.setEnabled(False)
+        else:
+            self.connected = self.relay_callback.disconnect()
+            if (not self.connected): 
+                self.connectButton.setText('Connect')
+                self.net_label.setText("Disconnected")
+                self.net_label.setStyleSheet("QLabel {  font-weight:bold; color:rgb(255,0,0) ; }")
+                self.ipAddrTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
+                self.portTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
+                self.ipAddrTextBox.setEnabled(True)
+                self.portTextBox.setEnabled(True)
 
     def resetButtonEvent(self):
         for i in range(16):
             if self.spdt_cb[i].CheckState==True: self.spdt_cb[i].setCheckState(QtCore.Qt.Unchecked)
             if self.dpdt_cb[i].CheckState==True: self.dpdt_cb[i].setCheckState(QtCore.Qt.Unchecked)
+        print self.getTimeStampGMT() + "GUI|  Cleared Relay Banks, Change Not Applied to RR Controller"
 
-    def catchCheckBoxEvent(self, reltype, relay_id, value):
-        #print str(reltype) + str(relay_id) + " " + str(value)
-        if   (reltype == 'SPDT'):
-            if (relay_id <= 8): self.spdt_a_value += value
-            else:  self.spdt_b_value += value
-        elif (reltype == 'DPDT'):
-            if (relay_id <= 8): self.dpdt_a_value += value
-            else:  self.dpdt_b_value += value
-        self.formatSetRelayMsg()
-
-        #print '$,R,' + str(self.spdt_a_value) + ',' +str(self.spdt_b_value) + ',' +str(self.dpdt_a_value) + ',' +str(self.dpdt_b_value)
-
-    def formatSetRelayMsg(self):
-        self.set_relay_msg = '$,R,'
-        if   (len(str(self.spdt_a_value)) == 1): self.set_relay_msg += '00' + str(self.spdt_a_value)
-        elif (len(str(self.spdt_a_value)) == 2): self.set_relay_msg += '0'  + str(self.spdt_a_value)
-        elif (len(str(self.spdt_a_value)) == 3): self.set_relay_msg +=        str(self.spdt_a_value)
-        self.set_relay_msg += ','
-
-        if   (len(str(self.spdt_b_value)) == 1): self.set_relay_msg += '00' + str(self.spdt_b_value)
-        elif (len(str(self.spdt_b_value)) == 2): self.set_relay_msg += '0'  + str(self.spdt_b_value)
-        elif (len(str(self.spdt_b_value)) == 3): self.set_relay_msg +=        str(self.spdt_b_value)
-        self.set_relay_msg += ','
-
-        if   (len(str(self.dpdt_a_value)) == 1): self.set_relay_msg += '00' + str(self.dpdt_a_value)
-        elif (len(str(self.dpdt_a_value)) == 2): self.set_relay_msg += '0'  + str(self.dpdt_a_value)
-        elif (len(str(self.dpdt_a_value)) == 3): self.set_relay_msg +=        str(self.dpdt_a_value)
-        self.set_relay_msg += ','
-
-        if   (len(str(self.dpdt_b_value)) == 1): self.set_relay_msg += '00' + str(self.dpdt_b_value)
-        elif (len(str(self.dpdt_b_value)) == 2): self.set_relay_msg += '0'  + str(self.dpdt_b_value)
-        elif (len(str(self.dpdt_b_value)) == 3): self.set_relay_msg +=        str(self.dpdt_b_value)
-
-        print self.set_relay_msg
+    def setCallback(self, callback):
+        self.relay_callback = callback
 
     def initADC(self):
         field_name  = [ 'ADC1:', 'ADC2:', 'ADC3:', 'ADC4:', 'ADC5:', 'ADC6:', 'ADC7:', 'ADC8:']
         self.field_value = [ '0.00V', '0.00V', '0.00V', '0.00V', '0.00V', '0.00V', '0.00V', '0.00V' ]
 
+        self.adc_auto_cb = QtGui.QCheckBox("Auto", self)  #Automatically update ADC voltages checkbox option
+        self.adc_auto_cb.setStyleSheet("QCheckBox { font-size: 12px; \
+                                                    background-color:rgb(0,0,0); \
+                                                    color:rgb(255,255,255); }")
+
+        self.adc_interval_le = QtGui.QLineEdit()
+        self.adc_interval_le.setText("1")
+        self.adc_validator = QtGui.QDoubleValidator()
+        self.adc_interval_le.setValidator(self.adc_validator)
+        self.adc_interval_le.setEchoMode(QtGui.QLineEdit.Normal)
+        self.adc_interval_le.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
+        self.adc_interval_le.setMaxLength(4)
+        self.adc_interval_le.setFixedWidth(30)
+        
+        label = QtGui.QLabel('Interval[s]')
+        label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(QtCore.Qt.AlignVCenter)
+        label.setStyleSheet("QLabel { font-size: 12px; background-color: rgb(0,0,0); color:rgb(255,255,255) ; }")
+
+        hbox1 = QtGui.QHBoxLayout()
+        hbox1.addWidget(self.adc_interval_le)
+        hbox1.addWidget(label)
+
         self.adc_field_labels_qlabels = []        #List containing Static field Qlabels, do not change
         self.adc_field_values_qlabels = []       #List containing the value of the field, updated per packet
+
+        self.ADCtimer = QtCore.QTimer(self)
+        self.ADCtimer.setInterval(self.adc_interval)
 
         vbox = QtGui.QVBoxLayout()
 
@@ -101,22 +223,27 @@ class MainWindow(QtGui.QWidget):
             hbox.addWidget(self.adc_field_labels_qlabels[i])
             hbox.addWidget(self.adc_field_values_qlabels[i])
             vbox.addLayout(hbox)
-
+        vbox.addWidget(self.adc_auto_cb)
+        vbox.addLayout(hbox1)
         self.adc_fr.setLayout(vbox)
 
     def initNet(self):
-        ipAddrTextBox = QtGui.QLineEdit()
-        ipAddrTextBox.setText("192.168.42.11")
-        ipAddrTextBox.setEchoMode(QtGui.QLineEdit.Normal)
-        ipAddrTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
-        ipAddrTextBox.setMaxLength(15)
+        self.ipAddrTextBox = QtGui.QLineEdit()
+        self.ipAddrTextBox.setText("192.168.42.11")
+        self.ipAddrTextBox.setInputMask("000.000.000.000;")
+        self.ipAddrTextBox.setEchoMode(QtGui.QLineEdit.Normal)
+        self.ipAddrTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
+        self.ipAddrTextBox.setMaxLength(15)
 
-        portTextBox = QtGui.QLineEdit()
-        portTextBox.setText("2000")
-        portTextBox.setEchoMode(QtGui.QLineEdit.Normal)
-        portTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
-        portTextBox.setMaxLength(5)
-        portTextBox.setFixedWidth(50)
+        self.portTextBox = QtGui.QLineEdit()
+        self.portTextBox.setText("2000")
+        self.port_validator = QtGui.QIntValidator()
+        self.port_validator.setRange(0,65535)
+        self.portTextBox.setValidator(self.port_validator)
+        self.portTextBox.setEchoMode(QtGui.QLineEdit.Normal)
+        self.portTextBox.setStyleSheet("QLineEdit {background-color:rgb(255,255,255); color:rgb(0,0,0);}")
+        self.portTextBox.setMaxLength(5)
+        self.portTextBox.setFixedWidth(50)
 
         label = QtGui.QLabel('Status:')
         label.setAlignment(QtCore.Qt.AlignRight)
@@ -125,10 +252,11 @@ class MainWindow(QtGui.QWidget):
         self.net_label.setFixedWidth(150)
 
         self.connectButton = QtGui.QPushButton("Connect")
+        self.net_label.setStyleSheet("QLabel {  font-weight:bold; color:rgb(255,0,0) ; }")
 
         hbox1 = QtGui.QHBoxLayout()
-        hbox1.addWidget(ipAddrTextBox)
-        hbox1.addWidget(portTextBox)
+        hbox1.addWidget(self.ipAddrTextBox)
+        hbox1.addWidget(self.portTextBox)
 
         hbox2 = QtGui.QHBoxLayout()
         hbox2.addWidget(label)
@@ -140,6 +268,14 @@ class MainWindow(QtGui.QWidget):
         vbox.addLayout(hbox2)
 
         self.net_fr.setLayout(vbox)
+    
+    def updateIPAddress(self):
+        ip_addr = self.ipAddrTextBox.text()
+        self.relay_callback.set_ipaddr(ip_addr)
+
+    def updatePort(self):
+        port = self.portTextBox.text()
+        self.relay_callback.set_port(port)
 
     def initControls(self):
         self.updateButton = QtGui.QPushButton("Update")
@@ -244,4 +380,6 @@ class MainWindow(QtGui.QWidget):
         palette.setColor(QtGui.QPalette.Text,QtCore.Qt.white)
         self.setPalette(palette)
 
+    def getTimeStampGMT(self):
+        return str(date.utcnow()) + " GMT | "
 

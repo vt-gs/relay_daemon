@@ -6,7 +6,6 @@ import sys
 import time
 from optparse import OptionParser
 from binascii import *
-from remote_relay import *
 from rr_main_gui import *
 from data_thread_rr import *
 
@@ -23,15 +22,16 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     #--------END Command Line option parser-------------------------------------------------
     
-    #relay = remote_relay(options.ip, options.port)
+    relay = remote_relay(options.ip, options.port)
     #relay.connect()
 
-    #server_thread = Data_Server(options)
-    #server_thread.daemon = True
-    #server_thread.start()
+    #relay_thread = Data_Thread(options)
+    #relay_thread.daemon = True
+    #relay_thread.start()
 
     app = QtGui.QApplication(sys.argv)
     win = MainWindow()
+    win.setCallback(relay)
     win.show()
     #server_thread.set_gui_access(ex)
     sys.exit(app.exec_())

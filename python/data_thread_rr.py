@@ -5,36 +5,36 @@ import string
 import sys
 import time
 import threading
+from remote_relay import *
 
-class Data_Server(threading.Thread):
+class Data_Thread(threading.Thread):
     def __init__ (self, options):
         threading.Thread.__init__(self)
         self._stop = threading.Event()
         self.ip = options.ip
         self.port = options.port
         self.suspend = False
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP Socket
-        self.packet_list = []
-        self.rtt_tlm = rtt_tlm()
+        self.relay = remote_relay(self.ip, self.port)
+        
 
     def run(self):
-        self.sock.bind((self.ip, self.port))
+        #self.sock.bind((self.ip, self.port))
         while (not self._stop.isSet()):
-            if self.suspend == False: 
-                data = self.sock.recv(1024)
-                if len(data) == 256:
-                    self.packet_list.append(data)
-                    self.Decode_Packet(data)
-                #print len(data)
-                #for i in range(len(data)):
-                #    print hex(ord(data[i]))
+            pass
         sys.exit()
 
-    def Decode_Packet(self, data):
-        self.gui.raw_textbox.insertPlainText(str(binascii.hexlify(data)) + '\n\n')
+    def send_msg(self):
+        
+        pass
+        
 
-    def set_gui_access(self, gui_handle):
-        self.gui = gui_handle
+    def connect(self):
+        print "Data Thread:  Connecting..."
+        try:
+            self.sock.connect((self.ip, self.port))
+        except ValueError:
+            print "Connection Failed, Socket Exception"
+            sys.exit()
 
     def stop(self):
         self._stop.set()
