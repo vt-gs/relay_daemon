@@ -7,7 +7,8 @@ import time
 from optparse import OptionParser
 from binascii import *
 from rr_main_gui import *
-from data_thread_rr import *
+#from data_thread_rr import *
+from remote_relay import *
 
 
 if __name__ == '__main__':
