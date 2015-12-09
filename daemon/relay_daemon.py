@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 #########################################
-#   Title: Tracking Daemon              #
-# Project: VTGS Tracking Daemon         #
+#   Title: Remote Relay Daemon          #
+# Project: VTGS Relay Control Daemon    #
 # Version: 1.0                          #
-#    Date: Dec 1, 2015                  #
+#    Date: Dec 8, 2015                  #
 #  Author: Zach Leffke, KJ4QLP          #
 # Comment: This is the initial version  # 
-#          of the Tracking Daemon.      #
+#          of the Relay Control Daemon. #
 #########################################
 
 import math
@@ -18,7 +18,6 @@ import os
 import datetime
 
 from optparse import OptionParser
-from md01 import *
 from main_thread import *
 
 if __name__ == '__main__':

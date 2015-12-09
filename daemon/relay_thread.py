@@ -16,9 +16,6 @@ import time
 import inspect
 from remote_relay import *
 
-def getTimeStampGMT(self):
-    return str(date.utcnow()) + " GMT | "
-
 class Relay_Thread(threading.Thread):
     def __init__ (self, ssid,ip, port, az_thresh=3.5, el_thresh=3.5):
         threading.Thread.__init__(self)
@@ -30,10 +27,9 @@ class Relay_Thread(threading.Thread):
         self.thread_fault   = False #indicates unknown failure in thread
         self.thread_dormant = False
 
-
     def run(self):
         time.sleep(1)  #Give parent thread time to spool up
-        print self.utc_ts() + self.ssid + " Thread Started..."
+        print self.utc_ts() + "Relay Thread Started..."
         last = None
         now = None
         while (not self._stop.isSet()):
@@ -134,6 +130,9 @@ class Relay_Thread(threading.Thread):
 
     def set_stop(self):
         self.md01.set_stop()
+
+    def utc_ts(self):
+        return str(date.utcnow()) + " UTC | "
 
     def stop_thread(self):
         self.md01.set_stop()

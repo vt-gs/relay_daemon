@@ -21,8 +21,8 @@ def getTimeStampGMT(self):
     return str(date.utcnow()) + " UTC | "
 
 class request(object):
-    def __init__ (self, ssid = None, cmd = None, az = None, el = None):
-        self.ssid   = ssid
+    def __init__ (self, user = None, cmd = None, az = None, el = None):
+        self.user   = user
         self.cmd    = cmd
         self.az     = az
         self.el     = el
@@ -39,10 +39,10 @@ class Main_Thread(threading.Thread):
         self.valid  = False
         self.lock   = threading.Lock()
 
-        self.rel_thread = MD01_Thread('VUL', options.vul_ip, options.vul_port)
-        self.rel_thread.daemon = True
-        self.rel_thread.start()
-        time.sleep(0.1)
+        #self.rel_thread = MD01_Thread('VUL', options.vul_ip, options.vul_port)
+        #self.rel_thread.daemon = True
+        #self.rel_thread.start()
+        #time.sleep(0.1)
 
     def run(self):
         print self.utc_ts() + "Main Thread Started..."

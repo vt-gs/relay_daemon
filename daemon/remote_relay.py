@@ -24,7 +24,7 @@ class remote_relay(object):
         self.relays_fb      = [0,0,0,0] #Contains relay bank register values, [SPDTA, SPDTB, DPDTA, DPDTB]
         self.set_relays_msg = ''        #Set Relay State Control Message:  $,R,AAA,BBB,CCC,DDD
         self.relays_cmd     = [0,0,0,0] #Contains commanded values for formatting set_relay_msg
-        self.connected  = False #TCP Connection Status
+        self.connected      = False #TCP Connection Status
 
     def getTimeStampGMT(self):
         return str(date.utcnow()) + " GMT | "
@@ -56,6 +56,7 @@ class remote_relay(object):
         self.sock.close()
         self.connected = False
         print self.getTimeStampGMT() + "RR |  Successfully disconnected from Remote Relay Controller"
+        return self.connected
     
     def set_relays(self, relays_cmd):
         self.relays_cmd = relays_cmd
