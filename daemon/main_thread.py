@@ -21,7 +21,6 @@ def getTimeStampGMT(self):
     return str(date.utcnow()) + " UTC | "
 
 class request(object):
-<<<<<<< HEAD
     def __init__ (self, userid = None, ssid = None, devid = None, state = None):
         self.userid = userid
         self.ssid   = ssid
@@ -34,13 +33,6 @@ class group(object):
         self.ssid   = ssid
         self.devid  = devid
         self.state  = state
-=======
-    def __init__ (self, user = None, cmd = None, az = None, el = None):
-        self.user   = user
-        self.cmd    = cmd
-        self.az     = az
-        self.el     = el
->>>>>>> 4f7ba02c59b32670df11047e29b633a33d82476f
 
 class Main_Thread(threading.Thread):
     def __init__ (self, options):
@@ -58,7 +50,7 @@ class Main_Thread(threading.Thread):
         self.valid  = False
         self.lock   = threading.Lock()
 
-<<<<<<< HEAD
+
         self.relay  = remote_relay(options.rel_ip, options.rel_port)
         self.spdt   = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]   #list to hold spdt relay states
         self.dpdt   = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]   #list to hold dpdt relay states
@@ -67,14 +59,6 @@ class Main_Thread(threading.Thread):
         self.dpdt_a_value   = 0   #DPDT BANK A Value, 0-255
         self.dpdt_b_value   = 0   #DPDT BANK B Value, 0-255
         self.relays_cmd     = [0,0,0,0] #Contains commanded values for formatting set_relay_msg
-
-        
-=======
-        #self.rel_thread = MD01_Thread('VUL', options.vul_ip, options.vul_port)
-        #self.rel_thread.daemon = True
-        #self.rel_thread.start()
-        #time.sleep(0.1)
->>>>>>> 4f7ba02c59b32670df11047e29b633a33d82476f
 
     def run(self):
         print self.utc_ts() + "UPDATE   | Main Thread Started..."

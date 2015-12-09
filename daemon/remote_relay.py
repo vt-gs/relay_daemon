@@ -56,12 +56,7 @@ class remote_relay(object):
         self.sock.close()
         self.connected = False
         print self.getTimeStampGMT() + "RR |  Successfully disconnected from Remote Relay Controller"
-        return self.connected
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 4f7ba02c59b32670df11047e29b633a33d82476f
     def set_relays(self, relays_cmd):
         self.relays_cmd = relays_cmd
         self.formatSetRelayMsg()
