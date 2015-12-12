@@ -35,12 +35,13 @@ class request(object):
 class relay(object):
     def __init__ (self, fields):
         self.id     = fields[0]
-        self.type   = fields[1]
-        self.bank   = fields[2]
-        self.device = fields[3]
+        self.status = fields[1]
+        self.type   = fields[2]
+        self.bank   = fields[3]
+        self.device = fields[4]
+        self.ssid   = fields[5].split(';')
         self.state  = False
         self.val    = 0
-        self.ssid   = fields[4].split(';')
 
 class Main_Thread(threading.Thread):
     def __init__ (self, options):
@@ -59,22 +60,27 @@ class Main_Thread(threading.Thread):
         self.req    = request()
         self.valid  = False
         self.lock   = threading.Lock()
+
+        self.connected = False
         
         self.relays = [] #list to hold 'relay' objects
 
         self.relay  = remote_relay(options.rel_ip, options.rel_port)
         self.spdt   = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]   #list to hold spdt relay states
         self.dpdt   = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]   #list to hold dpdt relay states
+
         self.spdt_a_value   = 0   #SPDT BANK A Value, 0-255
         self.spdt_b_value   = 0   #SPDT BANK B Value, 0-255
         self.dpdt_a_value   = 0   #DPDT BANK A Value, 0-255
         self.dpdt_b_value   = 0   #DPDT BANK B Value, 0-255
+
         self.relays_cmd     = [0,0,0,0] #Contains commanded values for formatting set_relay_msg
         self.relays_fb      = [0,0,0,0] #current relay state
+
         self.Read_Config()
 
-        for i in range(len(self.relays)):
-            print self.relays[i].id, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].ssid
+        #for i in range(len(self.relays)):
+        #    print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].ssid
 
     def Read_Config(self):
         path = os.getcwd() + '/' + self.config_file         
@@ -94,50 +100,57 @@ class Main_Thread(threading.Thread):
             self.relays[i+24].val = int(math.pow(2,i))
 
     def run(self):
-        print self.utc_ts() + "UPDATE   | Main Thread Started..."
+        print self.utc_ts() + "UPDATE | Main Thread Started..."
         self.sock.bind((self.ip, self.port))
-        self.relay.connect()
-        self.Read_Relay_State() # get current state of relays after initial connection
-        while (not self._stop.isSet()):
-            #self.lock.acquire()
-            data, addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
-            print "{}IO       | received message: {} from: {}".format(self.utc_ts(), data, addr)
-            #print self.utc_ts() + "   received from:", addr
-            #print self.utc_ts() + "received message:", data
-            #self.valid = self.Check_Request(data)
-            if (self.Check_Request(data)) == True:
-                self.Read_Relay_State()
-                if self.req.state == 'QUERY':
-                    self.Process_Query()
-                elif self.req.state == 'EN':
-                    pass
-                elif self.req.state == 'DIS':
-                    pass
-                self.Process_Request(addr)
-            
-            #self.lock.release()
+        print "{}IO | UDP Server Port Open".format(self.utc_ts())
+        self.connected = self.relay.connect()
+        if self.connected == True:
+            print self.utc_ts() + "UPDATE | Connected To Controller"
+            self.Read_Relay_State() # get current state of relays after initial connection
+            while (not self._stop.isSet()):
+                #self.lock.acquire()
+                self.data, self.addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
+                print "{}IO | received message: <{}> from: {}".format(self.utc_ts(), self.data.strip('\n'), self.addr)
+                #print self.utc_ts() + "   received from:", addr
+                #print self.utc_ts() + "received message:", data
+                #self.valid = self.Check_Request(data)
+                if (self.Check_Request(self.data,self.addr)) == True:
+                    #self.Read_Relay_State()
+                    if self.req.state == 'QUERY':
+                        self.Process_Query()
+                    elif self.req.state == 'EN':
+                        pass
+                    elif self.req.state == 'DIS':
+                        pass
+                    #self.Process_Request(addr)
+        
         sys.exit()
 
     def Process_Query(self):
         #Daemon should already know the state of all relays
+        self.Read_Relay_State()
         if self.req.devid == 'RF': #process RF Query for ssid
             pass
-            for i in range(len(self.relays)):
-                if self.relays[i].state == True:
-                    self.Send_Query_Response(self.relays[i])
             #some_func(self.req.ssid)
         elif self.req.devid == 'ALL': # process All Query for ssid
-            pass
-            #some_func(self.req.ssid)
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid
+                        msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
+                        self.sock.sendto(msg, self.addr)
         else: #process query for single relay
-            pass
-
-    def Send_Query_Response(self, rel):
-        print self.req
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        if self.relays[i].device == self.req.devid:
+                            print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid
+                            msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
+                            self.sock.sendto(msg, self.addr)
 
     def Read_Relay_State(self):
         rel = self.relay.get_relays()
-        if (a != -1): 
+        if (rel != -1): 
             mask = 0b00000001
             for i in range(8):
                 #SPDT A
@@ -164,7 +177,6 @@ class Main_Thread(threading.Thread):
             if self.relays[i+16].state == True:  self.dpdt_a += self.relays[i].val
             if self.relays[i+24].state == True:  self.dpdt_b += self.relays[i].val
             
-
     def Process_Request(self, data, addr):
         pass
 
@@ -189,8 +201,8 @@ class Main_Thread(threading.Thread):
         msg = thr.ssid + " QUERY " + str(az) + " " + str(el) + "\n"
         self.sock.sendto(msg, addr)
 
-    def Check_Request(self, data):
-        fields = data.split(" ")
+    def Check_Request(self, data,addr):
+        fields = data.strip('\n').split(" ")
 
         #Check number of fields        
         if len(fields) == 4:

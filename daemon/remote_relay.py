@@ -11,10 +11,10 @@ from binascii import *
 from optparse import OptionParser
 
 class remote_relay(object):
-    def __init__ (self, ip, port):
+    def __init__ (self, ip, port, timeout=1.0):
         self.ip             = ip        #IP Address of MD01 Controller
         self.port           = port      #Port number of MD01 Controller
-        #self.timeout        = timeout   #Socket Timeout interval, default = 1.0 seconds
+        self.timeout        = timeout   #Socket Timeout interval, default = 1.0 seconds
         #self.retries        = retries   #Number of times to attempt reconnection, default = 2
         self.feedback       = ''        #contains received data from Relay Bank
         self.get_status_msg = "$,Q"     #Query Status Message, returns Relay State and ADC voltages
@@ -34,12 +34,12 @@ class remote_relay(object):
         self.sock       = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP Socket
         self.sock.settimeout(self.timeout)   #set socket timeout
         #timestamp = self.getTimeStampGMT()
-        print self.getTimeStampGMT() + 'RR |  Attempting to connect to RR Controller: ' + str(self.ip) + ' ' + str(self.port)
+        print self.getTimeStampGMT() + 'RR | Attempting to connect to RR Controller: ' + str(self.ip) + ' ' + str(self.port)
         try:
             self.sock.connect((self.ip, self.port))
             #upon connection, get status to determine current relay positions
             self.connected = True
-            print self.getTimeStampGMT() + "RR |  Successfully connected to Remote Relay Controller"
+            print self.getTimeStampGMT() + "RR | Successfully connected to Remote Relay Controller"
             return self.connected
             #self.get_status()
         except socket.error as msg:
@@ -51,11 +51,11 @@ class remote_relay(object):
 
     def disconnect(self):
         #disconnect from relay controller
-        print self.getTimeStampGMT() + "RR |  Attempting to disconnected from Remote Relay Controller"
+        print self.getTimeStampGMT() + "RR | Attempting to disconnected from Remote Relay Controller"
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         self.connected = False
-        print self.getTimeStampGMT() + "RR |  Successfully disconnected from Remote Relay Controller"
+        print self.getTimeStampGMT() + "RR | Successfully disconnected from Remote Relay Controller"
 
     def set_relays(self, relays_cmd):
         self.relays_cmd = relays_cmd
@@ -65,11 +65,11 @@ class remote_relay(object):
             return -1
         else:
             try:
-                print self.getTimeStampGMT() + 'RR |  Sending control message: ' + self.set_relay_msg
+                print self.getTimeStampGMT() + 'RR | Sending control message: ' + self.set_relay_msg
                 self.sock.send(self.set_relay_msg) 
                 time.sleep(0.250)
                 self.feedback = self.sock.recv(1024)  
-                print self.getTimeStampGMT() + "RR |  Received feedback message: " + self.feedback.strip()
+                print self.getTimeStampGMT() + "RR | Received feedback message: " + self.feedback.strip()
                 a = self.parse_relay_feedback(self.feedback)  
                 return a
             except socket.error as msg:
@@ -109,13 +109,13 @@ class remote_relay(object):
             return -1, -1
         else:
             try:
-                print self.getTimeStampGMT() + "RR |  Sending control message: " + self.get_status_msg
+                print self.getTimeStampGMT() + "RR | Sending control message: " + self.get_status_msg
                 self.sock.send(self.get_status_msg) 
                 time.sleep(0.250)
                 self.feedback = self.sock.recv(1024)  
                 data_lines = self.feedback.split('\n')
-                print self.getTimeStampGMT() + "RR |  Received feedback message: " + data_lines[0]
-                print self.getTimeStampGMT() + "RR |  Received feedback message: " + data_lines[1]
+                print self.getTimeStampGMT() + "RR | Received feedback message: " + data_lines[0]
+                print self.getTimeStampGMT() + "RR | Received feedback message: " + data_lines[1]
                 a = self.parse_relay_feedback(data_lines[0])
                 b = self.parse_adc_feedback(data_lines[1]) 
                 
@@ -133,11 +133,11 @@ class remote_relay(object):
             return -1
         else:
             try:
-                print self.getTimeStampGMT() + "RR |  Sending control message: " + self.get_relays_msg
+                print self.getTimeStampGMT() + "RR | Sending control message: " + self.get_relays_msg
                 self.sock.send(self.get_relays_msg) 
-                time.sleep(0.250)
+                time.sleep(0.200)
                 self.feedback = self.sock.recv(1024)  
-                print self.getTimeStampGMT() + "RR |  Received feedback message: " + self.feedback.strip()
+                print self.getTimeStampGMT() + "RR | Received feedback message: " + self.feedback.strip()
                 a = self.parse_relay_feedback(self.feedback)  
                 return a
             except socket.error as msg:
@@ -153,11 +153,11 @@ class remote_relay(object):
             return -1
         else:
             try:
-                print self.getTimeStampGMT() + "RR |  Sending control message: " + self.get_adcs_msg
+                print self.getTimeStampGMT() + "RR | Sending control message: " + self.get_adcs_msg
                 self.sock.send(self.get_adcs_msg) 
                 time.sleep(0.250)
                 self.feedback = self.sock.recv(1024) 
-                print self.getTimeStampGMT() + "RR |  Received feedback message: " + self.feedback.strip()
+                print self.getTimeStampGMT() + "RR | Received feedback message: " + self.feedback.strip()
                 b = self.parse_adc_feedback(self.feedback)  
                 return b
             except socket.error as msg:
@@ -170,7 +170,7 @@ class remote_relay(object):
         data = data_line.split(',')
         if (data[0] == '$') and (data[1] == 'R'): #Valid Relay Feedback Message
             for i in range(4):
-                self.relays_fb[i] = int(data[i+2].strip())
+                self.relays_fb[i] = int(((data[i+2].strip('\n')).strip('\r')).strip('$'))
                 #print bin(self.relays_fb[i])
             #print self.relays_fb
         return self.relays_fb
@@ -186,15 +186,15 @@ class remote_relay(object):
         return str(date.utcnow()) + " UTC | "
 
     def printNotConnected(self, msg):
-        print self.getTimeStampGMT() + "RR |  Cannot " + msg + " until connected to Remote Relay Controller."
+        print self.getTimeStampGMT() + "RR | Cannot " + msg + " until connected to Remote Relay Controller."
 
     def set_ipaddr(self, ip):
         self.ip = ip
-        print self.getTimeStampGMT() + "RR |  Updated RR Controller IP Address to: " + self.ip
+        print self.getTimeStampGMT() + "RR | Updated RR Controller IP Address to: " + self.ip
 
     def set_port(self, port):
         self.port = int(port)
-        print self.getTimeStampGMT() + "RR |  Updated RR Controller TCP Port: " + str(self.port)
+        print self.getTimeStampGMT() + "RR | Updated RR Controller TCP Port: " + str(self.port)
 
 
 
