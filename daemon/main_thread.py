@@ -25,10 +25,10 @@ def getTimeStampGMT(self):
     return str(date.utcnow()) + " UTC | "
 
 class request(object):
-    def __init__ (self, userid = None, ssid = None, devid = None, state = None, addr=None):
+    def __init__ (self, userid = None, ssid = None, device = None, state = None, addr=None):
         self.userid = userid
         self.ssid   = ssid
-        self.devid  = devid
+        self.device  = device
         self.state  = state
         self.addr   = addr
 
@@ -54,8 +54,8 @@ class Main_Thread(threading.Thread):
         self.config_file = 'relay.config'
         self.userid = None
 
-        self.ssid_list  = ['VHF', 'UHF', 'LBAND', 'SBAND', 'RAEME', 'WX', 'RELAY']
-        self.devid_list = ['USRP', 'LNA', 'POL', 'PTT', 'TRACK', 'RF', 'ALL']
+        self.ssid_list  = ['VHF', 'UHF', 'LBAND', 'SBAND', 'RAEME', 'WX', 'ALL']
+        self.device_list = ['USRP', 'LNA', 'POL', 'PTT', 'TRACK', 'RF', 'ALL']
         self.state_list = ['EN', 'DIS', 'QUERY']
 
         self.req    = request()
@@ -101,12 +101,12 @@ class Main_Thread(threading.Thread):
             self.relays[i+24].val = int(math.pow(2,i))
 
     def run(self):
-        print self.utc_ts() + "UPDATE | Main Thread Started..."
+        print self.utc_ts() + "TH | Main Thread Started..."
         self.sock.bind((self.ip, self.port))
         print "{}IO | UDP Server Port Open".format(self.utc_ts())
         self.connected = self.relay.connect()
         if self.connected == True:
-            print self.utc_ts() + "UPDATE | Connected To Controller"
+            print self.utc_ts() + "TH | Connected To Controller"
             self.Read_Relay_State() # get current state of relays after initial connection
             while (not self._stop.isSet()):
                 #self.lock.acquire()
@@ -130,10 +130,19 @@ class Main_Thread(threading.Thread):
     def Process_Query(self):
         #Daemon should already know the state of all relays
         self.Read_Relay_State()
-        if self.req.devid == 'RF': #process RF Query for ssid
-            pass
+        if self.req.ssid == 'ALL':
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
+                    msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
+                    self.sock.sendto(msg, self.addr)
+        if self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        pass
             #some_func(self.req.ssid)
-        elif self.req.devid == 'ALL': # process All Query for ssid
+        elif self.req.device == 'ALL': # process All Query for ssid
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
                     if self.relays[i].ssid[j] == self.req.ssid:
@@ -144,7 +153,7 @@ class Main_Thread(threading.Thread):
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
                     if self.relays[i].ssid[j] == self.req.ssid:
-                        if self.relays[i].device == self.req.devid:
+                        if self.relays[i].device == self.req.device:
                             print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
                             msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
                             self.sock.sendto(msg, self.addr)
@@ -216,31 +225,31 @@ class Main_Thread(threading.Thread):
                 self.req = request(fields[0].strip('\n'), fields[1].strip('\n'), fields[2].strip('\n'), fields[3].strip('\n'))
                 self.req.addr = addr
             except ValueError:
-                print self.utc_ts() + "IO Error | Invalid Command Data Types"
+                print self.utc_ts() + "IO | Error: Invalid Command Data Types"
                 return False
         else: 
-            print self.utc_ts() + "IO Error | Invalid number of fields in command: ", len(fields) 
+            print self.utc_ts() + "IO | Error: Invalid number of fields in command: ", len(fields) 
             return False
 
         #Validate Subsystem ID Field
         valid_ssid = False
         for i in range(len(self.ssid_list)): 
             if self.ssid_list[i] == self.req.ssid: valid_ssid = True
-        if valid_ssid == False: print self.utc_ts() + ("IO Error | Invalid Subsystem ID: %s, from user: %s" % (self.req.ssid, self.req.userid))
+        if valid_ssid == False: print self.utc_ts() + ("IO | Error: Invalid Subsystem ID: %s, from user: %s" % (self.req.ssid, self.req.userid))
        
         #Validate Device ID Field
-        valid_devid = False
-        for i in range(len(self.devid_list)): 
-            if self.devid_list[i] == self.req.devid: valid_devid = True
-        if valid_devid == False: print self.utc_ts() + ("IO Error | Invalid Device ID: %s, from user: %s" % (self.req.devid, self.req.userid))
+        valid_device = False
+        for i in range(len(self.device_list)): 
+            if self.device_list[i] == self.req.device: valid_device = True
+        if valid_device == False: print self.utc_ts() + ("IO | Error: Invalid Device ID: %s, from user: %s" % (self.req.device, self.req.userid))
 
         #Validate State Field
         valid_state = False
         for i in range(len(self.state_list)): 
             if self.state_list[i] == self.req.state: valid_state = True
-        if valid_state == False: print self.utc_ts() + ("IO Error | Invalid State: %s, from user: %s" % (self.req.state, self.req.userid))
+        if valid_state == False: print self.utc_ts() + ("IO | Error: Invalid State: %s, from user: %s" % (self.req.state, self.req.userid))
 
-        if ((valid_ssid == False) or (valid_devid == False) or (valid_state == False)): return False
+        if ((valid_ssid == False) or (valid_device == False) or (valid_state == False)): return False
         else: return True
 
     def utc_ts(self):
