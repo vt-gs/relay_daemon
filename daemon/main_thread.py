@@ -34,15 +34,16 @@ class request(object):
 
 class relay(object):
     def __init__ (self, fields):
-        self.id     = fields[0]
-        self.status = fields[1]
-        self.type   = fields[2]
-        self.bank   = fields[3]
-        self.device = fields[4]
-        self.ssid   = fields[5].split(';')
-        self.group  = fields[6].split(';')
-        self.state  = False
-        self.val    = 0
+        self.id     = fields[0] #relay id number, 1-32
+        self.status = fields[1] #relay wired status, connected or not connected
+        self.type   = fields[2] #SPDT or DPDT
+        self.bank   = fields[3] #A or B
+        self.device = fields[4] #What device is connected to relay, LNA, USRP, TRACK, etc.
+        self.ssid   = fields[5].split(';') #What subsystems belong to relay
+        self.group  = fields[6].split(';') #What relay groups relay belongs to
+        self.state  = False     #Relay engaged state (TRUE = ON, FALSE=OFF)
+        self.val    = 0         #relay bit value in decimal form (1,2,4,8,etc.)
+        self.userid = None      #holds last user to command the relays.
 
 class Main_Thread(threading.Thread):
     def __init__ (self, options):
@@ -80,9 +81,6 @@ class Main_Thread(threading.Thread):
 
         self.Read_Config()
 
-        #for i in range(len(self.relays)):
-        #    print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].ssid
-
     def Read_Config(self):
         path = os.getcwd() + '/' + self.config_file         
         if os.path.isfile(path) == True:
@@ -112,11 +110,8 @@ class Main_Thread(threading.Thread):
                 #self.lock.acquire()
                 self.data, self.addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
                 print "{}IO | received message: <{}> from: {}".format(self.utc_ts(), self.data.strip('\n'), self.addr)
-                #print self.utc_ts() + "   received from:", addr
-                #print self.utc_ts() + "received message:", data
-                #self.valid = self.Check_Request(data)
+                
                 if (self.Check_Request(self.data,self.addr)) == True:
-                    #self.Read_Relay_State()
                     if self.req.state == 'QUERY':
                         self.Process_Query()
                     elif self.req.state == 'EN':
@@ -182,17 +177,6 @@ class Main_Thread(threading.Thread):
                 if ((rel[3]>>i) & mask): self.relays[i+24].state = True
                 else: self.relays[i+24].state = False
 
-    def Check_Relay_States(self):
-        self.spdt_a = 0
-        self.spdt_b = 0
-        self.dpdt_a = 0
-        self.dpdt_b = 0
-        for i in range(8):
-            if self.relays[i+0 ].state == True:  self.spdt_a += self.relays[i].val
-            if self.relays[i+8 ].state == True:  self.spdt_b += self.relays[i].val
-            if self.relays[i+16].state == True:  self.dpdt_a += self.relays[i].val
-            if self.relays[i+24].state == True:  self.dpdt_b += self.relays[i].val
-            
     def Process_Request(self, data, addr):
         pass
 
