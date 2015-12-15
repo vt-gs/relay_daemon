@@ -81,23 +81,7 @@ class Main_Thread(threading.Thread):
 
         self.Read_Config()
 
-    def Read_Config(self):
-        path = os.getcwd() + '/' + self.config_file         
-        if os.path.isfile(path) == True:
-            param_f = open(path, 'r')
-            param_data = param_f.read()
-            param_data = param_data.strip()
-            param_f.close()
-            param_list = param_data.split('\n')
-        print len(param_list)
-        for i in range(len(param_list)-1):
-            self.relays.append(relay(param_list[i+1].split(',')))
-        for i in range(8):
-            self.relays[i+0].val = int(math.pow(2,i))
-            self.relays[i+8].val = int(math.pow(2,i))
-            self.relays[i+16].val = int(math.pow(2,i))
-            self.relays[i+24].val = int(math.pow(2,i))
-
+    
     def run(self):
         print self.utc_ts() + "TH | Main Thread Started..."
         self.sock.bind((self.ip, self.port))
@@ -121,43 +105,9 @@ class Main_Thread(threading.Thread):
         
         sys.exit()
 
-    def Process_Query(self):
-        #Daemon should already know the state of all relays
-        self.Read_Relay_State()
-        if self.req.ssid == 'ALL':
-            for i in range(len(self.relays)):
-                for j in range(len(self.relays[i].ssid)):
-                    self.Print_Relay(i)
-                    self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
-        elif self.req.device == 'RF': #process RF Query for ssid
-            for i in range(len(self.relays)): #cycle through relay list
-                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
-                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
-                        for k in range(len(self.relays[i].group)): #cycle through group
-                            if self.relays[i].group[k] == self.req.device:
-                                self.Print_Relay(i)
-                                self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
-        elif self.req.device == 'ALL': # process All Query for ssid
-            for i in range(len(self.relays)):
-                for j in range(len(self.relays[i].ssid)):
-                    if self.relays[i].ssid[j] == self.req.ssid:
-                        self.Print_Relay(i)
-                        self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
-        else: #process query for single relay
-            for i in range(len(self.relays)):
-                for j in range(len(self.relays[i].ssid)):
-                    if self.relays[i].ssid[j] == self.req.ssid:
-                        if self.relays[i].device == self.req.device:
-                            self.Print_Relay(i)
-                            self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
-
     def Print_Relay(self, i):
         print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
               self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
-
-    def Send_Query_Feedback(self, userid, ssid, device, state):
-        msg = userid + " " + ssid + " " + device + " " + state + "\n"
-        self.sock.sendto(msg, self.addr)
 
     def Read_Relay_State(self):
         rel = self.relay.get_relays()
@@ -176,30 +126,6 @@ class Main_Thread(threading.Thread):
                 #DPDT B
                 if ((rel[3]>>i) & mask): self.relays[i+24].state = True
                 else: self.relays[i+24].state = False
-
-    def Process_Request(self, data, addr):
-        pass
-
-    def Process_Command(self, thr, data, addr):
-        az = 0 
-        el = 0
-        if thr.connected == True:
-            if   self.req.cmd == 'SET':
-                thr.set_position(self.req.az, self.req.el)
-                az, el = thr.get_position()
-            elif self.req.cmd == 'QUERY':
-                az, el = thr.get_position()
-                #print az, el
-            elif self.req.cmd == 'STOP':
-                thr.set_stop()
-                time.sleep(0.01)
-                az, el = thr.get_position()
-            
-        self.Send_Feedback(thr, az, el, data, addr)
-
-    def Send_Feedback(self,thr, az, el, data, addr):
-        msg = thr.ssid + " QUERY " + str(az) + " " + str(el) + "\n"
-        self.sock.sendto(msg, addr)
 
     def Check_Request(self, data,addr):
         fields = data.strip('\n').split(" ")
@@ -236,6 +162,58 @@ class Main_Thread(threading.Thread):
 
         if ((valid_ssid == False) or (valid_device == False) or (valid_state == False)): return False
         else: return True
+
+    def Process_Query(self):
+        #Daemon should already know the state of all relays
+        self.Read_Relay_State()
+        if self.req.ssid == 'ALL':
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    self.Print_Relay(i)
+                    self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        elif self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                self.Print_Relay(i)
+                                self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        elif self.req.device == 'ALL': # process All Query for ssid
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        self.Print_Relay(i)
+                        self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        else: #process query for single relay
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        if self.relays[i].device == self.req.device:
+                            self.Print_Relay(i)
+                            self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+
+    def Send_Query_Feedback(self, userid, ssid, device, state):
+        msg = userid + " " + ssid + " " + device + " " + state + "\n"
+        self.sock.sendto(msg, self.addr)
+
+    def Read_Config(self):
+        path = os.getcwd() + '/' + self.config_file         
+        if os.path.isfile(path) == True:
+            param_f = open(path, 'r')
+            param_data = param_f.read()
+            param_data = param_data.strip()
+            param_f.close()
+            param_list = param_data.split('\n')
+        print len(param_list)
+        for i in range(len(param_list)-1):
+            self.relays.append(relay(param_list[i+1].split(',')))
+        for i in range(8):
+            self.relays[i+0].val = int(math.pow(2,i))
+            self.relays[i+8].val = int(math.pow(2,i))
+            self.relays[i+16].val = int(math.pow(2,i))
+            self.relays[i+24].val = int(math.pow(2,i))
+
 
     def utc_ts(self):
         return str(date.utcnow()) + " UTC | "
