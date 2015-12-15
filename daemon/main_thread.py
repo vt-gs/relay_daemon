@@ -123,7 +123,6 @@ class Main_Thread(threading.Thread):
                         pass
                     elif self.req.state == 'DIS':
                         pass
-                    #self.Process_Request(addr)
         
         sys.exit()
 
@@ -133,33 +132,35 @@ class Main_Thread(threading.Thread):
         if self.req.ssid == 'ALL':
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
-                    print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
-                    msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
-                    self.sock.sendto(msg, self.addr)
-        if self.req.device == 'RF': #process RF Query for ssid
-            for i in range(len(self.relays)):
-                for j in range(len(self.relays[i].ssid)):
-                    if self.relays[i].ssid[j] == self.req.ssid:
-                        pass
-            #some_func(self.req.ssid)
+                    self.Print_Relay(i)
+                    self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        elif self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                self.Print_Relay(i)
+                                self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
         elif self.req.device == 'ALL': # process All Query for ssid
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
                     if self.relays[i].ssid[j] == self.req.ssid:
-                        print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
-                        msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
-                        self.sock.sendto(msg, self.addr)
+                        self.Print_Relay(i)
+                        self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
         else: #process query for single relay
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
                     if self.relays[i].ssid[j] == self.req.ssid:
                         if self.relays[i].device == self.req.device:
-                            print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
-                            msg = self.req.userid + " " + self.relays[i].ssid[j] + " " + self.relays[i].device + " " + str(self.relays[i].state) + "\n"
-                            self.sock.sendto(msg, self.addr)
+                            self.Print_Relay(i)
+                            self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+
+    def Print_Relay(self, i):
+        print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
+              self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
 
     def Send_Query_Feedback(self, userid, ssid, device, state):
-        print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
         msg = userid + " " + ssid + " " + device + " " + state + "\n"
         self.sock.sendto(msg, self.addr)
 
