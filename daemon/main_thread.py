@@ -77,7 +77,7 @@ class Main_Thread(threading.Thread):
         self.dpdt_b_value   = 0   #DPDT BANK B Value, 0-255
 
         self.relays_cmd     = [0,0,0,0] #Contains commanded values for formatting set_relay_msg
-        self.relays_fb      = [0,0,0,0] #current relay state
+        #self.relays_fb      = [0,0,0,0] #current relay state
 
         self.Read_Config()
 
@@ -99,33 +99,101 @@ class Main_Thread(threading.Thread):
                     if self.req.state == 'QUERY':
                         self.Process_Query()
                     elif self.req.state == 'EN':
-                        pass
+                        self.Process_Enable()
                     elif self.req.state == 'DIS':
-                        pass
+                        self.Process_Disable()
         
         sys.exit()
+
+    def Process_Enable(self):
+        if self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                if self.relays[i].state == False:
+                                    self.Update_Relay_CMD(self.relays[i], True)
+                                    self.Print_Relay(i)
+
+        else:
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        if self.relays[i].device == self.req.device:
+                            self.Update_Relay_CMD(self.relays[i], True)
+                            self.Print_Relay(i)
+
+        print self.relays_cmd
+        self.Set_Relay()
+
+    def Process_Disable(self):
+        if self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                if self.relays[i].state == True:
+                                    self.Update_Relay_CMD(self.relays[i], False)
+                                    self.Print_Relay(i)
+        else:
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        if self.relays[i].device == self.req.device:
+                            self.Update_Relay_CMD(self.relays[i], False)
+                            self.Print_Relay(i)
+        print self.relays_cmd
+        self.Set_Relay()
+
+    def Set_Relay(self):
+       rel = self.relay.set_relays(self.relays_cmd)
+       if (rel != -1): self.Update_Relay_State(rel) 
+
+    def Update_Relay_CMD(self, rel, inc):
+        idx = 0
+        if rel.id >=1  and rel.id <=8 :  idx = 0
+        if rel.id >=9  and rel.id <=16:  idx = 1
+        if rel.id >=17 and rel.id <=24:  idx = 2
+        if rel.id >=25 and rel.id <=32:  idx = 3
+
+        if   inc == True : 
+            self.relays_cmd[idx] += rel.val
+        elif inc == False: 
+            self.relays_cmd[idx] -= rel.val
+        
 
     def Print_Relay(self, i):
         print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
               self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
+        
 
     def Read_Relay_State(self):
         rel = self.relay.get_relays()
-        if (rel != -1): 
-            mask = 0b00000001
-            for i in range(8):
-                #SPDT A
-                if ((rel[0]>>i) & mask): self.relays[i].state = True
-                else: self.relays[i].state = False
-                #SPDT B
-                if ((rel[1]>>i) & mask): self.relays[i+8].state = True
-                else: self.relays[i+8].state = False
-                #DPDT A
-                if ((rel[2]>>i) & mask): self.relays[i+16].state = True
-                else: self.relays[i+16].state = False
-                #DPDT B
-                if ((rel[3]>>i) & mask): self.relays[i+24].state = True
-                else: self.relays[i+24].state = False
+        if (rel != -1): self.Update_Relay_State(rel)
+
+    def Update_Relay_State(self, rel):
+        mask = 0b00000001
+        self.relays_cmd = [0,0,0,0]
+        for i in range(8):
+            #SPDT A
+            if ((rel[0]>>i) & mask): self.relays[i].state = True
+            else: self.relays[i].state = False
+            if self.relays[i].state == True:  self.relays_cmd[0] += self.relays[i].val
+            #SPDT B
+            if ((rel[1]>>i) & mask): self.relays[i+8].state = True
+            else: self.relays[i+8].state = False
+            if self.relays[i+8].state == True:  self.relays_cmd[1] += self.relays[i+8].val
+            #DPDT A
+            if ((rel[2]>>i) & mask): self.relays[i+16].state = True
+            else: self.relays[i+16].state = False
+            if self.relays[i+16].state == True:  self.relays_cmd[2] += self.relays[i+16].val
+            #DPDT B
+            if ((rel[3]>>i) & mask): self.relays[i+24].state = True
+            else: self.relays[i+24].state = False
+            if self.relays[i+24].state == True:  self.relays_cmd[3] += self.relays[i+24].val
+        print self.relays_cmd
 
     def Check_Request(self, data,addr):
         fields = data.strip('\n').split(" ")
