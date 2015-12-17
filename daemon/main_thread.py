@@ -115,7 +115,15 @@ class Main_Thread(threading.Thread):
                                 if self.relays[i].state == False:
                                     self.Update_Relay_CMD(self.relays[i], True)
                                     self.Print_Relay(i)
-
+        elif self.req.device == 'ALL': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                if self.relays[i].state == False:
+                                    self.Update_Relay_CMD(self.relays[i], True)
+                                    self.Print_Relay(i)
         else:
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
@@ -129,6 +137,15 @@ class Main_Thread(threading.Thread):
 
     def Process_Disable(self):
         if self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                if self.relays[i].state == True:
+                                    self.Update_Relay_CMD(self.relays[i], False)
+                                    self.Print_Relay(i)
+        elif self.req.device == 'ALL': #process RF Query for ssid
             for i in range(len(self.relays)): #cycle through relay list
                 for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
                     if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
