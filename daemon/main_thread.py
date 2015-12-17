@@ -34,8 +34,10 @@ class request(object):
 
 class relay(object):
     def __init__ (self, fields):
-        self.id     = fields[0] #relay id number, 1-32
-        self.status = fields[1] #relay wired status, connected or not connected
+        self.id     = int(fields[0]) #relay id number, 1-32
+        if fields[1] == 'connected':  self.status = True
+        else: self.status = False
+        #self.status = fields[1] #relay wired status, True = connected or False= not connected
         self.type   = fields[2] #SPDT or DPDT
         self.bank   = fields[3] #A or B
         self.device = fields[4] #What device is connected to relay, LNA, USRP, TRACK, etc.
@@ -132,7 +134,7 @@ class Main_Thread(threading.Thread):
                             self.Update_Relay_CMD(self.relays[i], True)
                             self.Print_Relay(i)
 
-        print self.relays_cmd
+        print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
 
     def Process_Disable(self):
@@ -161,7 +163,7 @@ class Main_Thread(threading.Thread):
                         if self.relays[i].device == self.req.device:
                             self.Update_Relay_CMD(self.relays[i], False)
                             self.Print_Relay(i)
-        print self.relays_cmd
+        print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
 
     def Set_Relay(self):
@@ -170,19 +172,18 @@ class Main_Thread(threading.Thread):
 
     def Update_Relay_CMD(self, rel, inc):
         idx = 0
-        if rel.id >=1  and rel.id <=8 :  idx = 0
-        if rel.id >=9  and rel.id <=16:  idx = 1
-        if rel.id >=17 and rel.id <=24:  idx = 2
-        if rel.id >=25 and rel.id <=32:  idx = 3
+        if ((rel.id >=1)  and (rel.id <=8)) :  idx = 0
+        if ((rel.id >=9)  and (rel.id <=16)):  idx = 1
+        if ((rel.id >=17) and (rel.id <=24)):  idx = 2
+        if ((rel.id >=25) and (rel.id <=32)):  idx = 3
 
         if   inc == True : 
             self.relays_cmd[idx] += rel.val
         elif inc == False: 
             self.relays_cmd[idx] -= rel.val
-        
 
     def Print_Relay(self, i):
-        print self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
+        print self.utc_ts() + "TH |", self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
               self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
         
 
@@ -210,7 +211,7 @@ class Main_Thread(threading.Thread):
             if ((rel[3]>>i) & mask): self.relays[i+24].state = True
             else: self.relays[i+24].state = False
             if self.relays[i+24].state == True:  self.relays_cmd[3] += self.relays[i+24].val
-        print self.relays_cmd
+        print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
 
     def Check_Request(self, data,addr):
         fields = data.strip('\n').split(" ")
@@ -290,7 +291,7 @@ class Main_Thread(threading.Thread):
             param_data = param_data.strip()
             param_f.close()
             param_list = param_data.split('\n')
-        print len(param_list)
+        #print len(param_list)
         for i in range(len(param_list)-1):
             self.relays.append(relay(param_list[i+1].split(',')))
         for i in range(8):
