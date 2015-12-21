@@ -145,6 +145,7 @@ class Main_Thread(threading.Thread):
 
         print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
+        self.Send_Feedback()
 
     def Process_Disable(self):
         if self.req.device == 'RF': #process RF Query for ssid
@@ -183,6 +184,34 @@ class Main_Thread(threading.Thread):
                             #                         self.relays[i].device, str(self.relays[i].state))
         print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
+        self.Send_Feedback()
+
+    def Send_Feedback(self):
+        if self.req.device == 'RF': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                self.Print_Relay(i)
+                                self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        elif self.req.device == 'ALL': #process RF Query for ssid
+            for i in range(len(self.relays)): #cycle through relay list
+                for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
+                    if self.relays[i].ssid[j] == self.req.ssid: #verify SSID match
+                        for k in range(len(self.relays[i].group)): #cycle through group
+                            if self.relays[i].group[k] == self.req.device:
+                                if self.relays[i].state == True:
+                                    self.Print_Relay(i)
+                                    self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        else: #process query for single relay
+            for i in range(len(self.relays)):
+                for j in range(len(self.relays[i].ssid)):
+                    if self.relays[i].ssid[j] == self.req.ssid:
+                        if self.relays[i].device == self.req.device:
+                            self.Print_Relay(i)
+                            self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], self.relays[i].device, str(self.relays[i].state))
+        
 
     def Set_Relay(self):
         print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
