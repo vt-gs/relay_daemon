@@ -117,6 +117,9 @@ class Main_Thread(threading.Thread):
                                 if self.relays[i].state == False:
                                     self.Update_Relay_CMD(self.relays[i], True)
                                     self.Print_Relay(i)
+                                    #self.Set_Relay()
+                                    #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                                    #                         self.relays[i].device, str(self.relays[i].state))
         elif self.req.device == 'ALL': #process RF Query for ssid
             for i in range(len(self.relays)): #cycle through relay list
                 for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
@@ -126,6 +129,9 @@ class Main_Thread(threading.Thread):
                                 if self.relays[i].state == False:
                                     self.Update_Relay_CMD(self.relays[i], True)
                                     self.Print_Relay(i)
+                                    #self.Set_Relay()
+                                    #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                                    #                         self.relays[i].device, str(self.relays[i].state))
         else:
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
@@ -133,6 +139,9 @@ class Main_Thread(threading.Thread):
                         if self.relays[i].device == self.req.device:
                             self.Update_Relay_CMD(self.relays[i], True)
                             self.Print_Relay(i)
+                            #self.Set_Relay()
+                            #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                            #                         self.relays[i].device, str(self.relays[i].state))
 
         print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
@@ -147,6 +156,9 @@ class Main_Thread(threading.Thread):
                                 if self.relays[i].state == True:
                                     self.Update_Relay_CMD(self.relays[i], False)
                                     self.Print_Relay(i)
+                                    #self.Set_Relay()
+                                    #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                                    #                         self.relays[i].device, str(self.relays[i].state))
         elif self.req.device == 'ALL': #process RF Query for ssid
             for i in range(len(self.relays)): #cycle through relay list
                 for j in range(len(self.relays[i].ssid)): #cycle through matching SSID
@@ -156,6 +168,9 @@ class Main_Thread(threading.Thread):
                                 if self.relays[i].state == True:
                                     self.Update_Relay_CMD(self.relays[i], False)
                                     self.Print_Relay(i)
+                                    #self.Set_Relay()
+                                    #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                                    #                         self.relays[i].device, str(self.relays[i].state))
         else:
             for i in range(len(self.relays)):
                 for j in range(len(self.relays[i].ssid)):
@@ -163,12 +178,16 @@ class Main_Thread(threading.Thread):
                         if self.relays[i].device == self.req.device:
                             self.Update_Relay_CMD(self.relays[i], False)
                             self.Print_Relay(i)
+                            #self.Set_Relay()
+                            #self.Send_Query_Feedback(self.req.userid, self.relays[i].ssid[j], \
+                            #                         self.relays[i].device, str(self.relays[i].state))
         print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
         self.Set_Relay()
 
     def Set_Relay(self):
-       rel = self.relay.set_relays(self.relays_cmd)
-       if (rel != -1): self.Update_Relay_State(rel) 
+        print self.utc_ts() + "TH | Relay Command State:",self.relays_cmd
+        rel = self.relay.set_relays(self.relays_cmd)
+        if (rel != -1): self.Update_Relay_State(rel) 
 
     def Update_Relay_CMD(self, rel, inc):
         idx = 0
@@ -185,7 +204,6 @@ class Main_Thread(threading.Thread):
     def Print_Relay(self, i):
         print self.utc_ts() + "TH |", self.relays[i].id, self.relays[i].status, self.relays[i].type, self.relays[i].bank, \
               self.relays[i].device, self.relays[i].val, self.relays[i].state,self.relays[i].ssid,self.relays[i].group
-        
 
     def Read_Relay_State(self):
         rel = self.relay.get_relays()
