@@ -125,7 +125,7 @@ class Main_Thread(threading.Thread):
                         if self.relays[i].ssid[j] == self.req.ssid:
                             if self.relays[i].device == self.req.device:
                                 self.Update_Relay_CMD(self.relays[i], True)
-                            self.Print_Relay(i)
+                                self.Print_Relay(i)
     
             self.Set_Relay()
             self.Send_Feedback()
@@ -158,7 +158,7 @@ class Main_Thread(threading.Thread):
                         if self.relays[i].ssid[j] == self.req.ssid:
                             if self.relays[i].device == self.req.device:
                                 self.Update_Relay_CMD(self.relays[i], False)
-                            self.Print_Relay(i)
+                                self.Print_Relay(i)
 
             self.Set_Relay()
             self.Send_Feedback()
