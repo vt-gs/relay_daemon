@@ -21,7 +21,8 @@ import telnetlib
 from optparse import OptionParser
 #from main_thread import *
 
-if __name__ == '__main__':
+def main:
+    """ Main entry point to start the service. """
     #--------START Command Line option parser------------------------------------------------------
     usage  = "usage: %prog "
     parser = OptionParser(usage = usage)
@@ -63,5 +64,8 @@ if __name__ == '__main__':
     #while 1:
     #    pass
     sys.exit()
+
+if __name__ == '__main__':
+    main()
     
 
