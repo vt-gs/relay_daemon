@@ -18,13 +18,13 @@ from setuptools import setup
 import relay_daemon
 
 setup(
-    name    ='Relay Daemon',    	# This is the name of your PyPI-package.
-    version =__version__,
-    url     =__url__,
-    author  =__author__,
+    name         = 'Relay Daemon', # This is the name of your PyPI-package.
+    version      = __version__,
+    url          = __url__,
+    author       = __author__,
     author_email = __email__,
     #scripts=['relay_daemon']  # executable name  
-    entry_points={
+    entry_points ={
         "console_scripts": ["relay_daemon = relay_daemon.main:main"]
     }
 )
