@@ -2,68 +2,74 @@
 #########################################
 #   Title: Remote Relay Daemon          #
 # Project: VTGS Relay Control Daemon    #
-# Version: 1.0                          #
-#    Date: Dec 8, 2015                  #
+# Version: 2.0                          #
+#    Date: Dec 15, 2017                 #
 #  Author: Zach Leffke, KJ4QLP          #
-# Comment: This is the initial version  # 
-#          of the Relay Control Daemon. #
+# Comment:                              #
+#   -Relay Control Daemon               #
+#   -Intended for use with systemd      #
 #########################################
 
 import math
 import string
 import time
 import sys
-import csv
 import os
 import datetime
-import telnetlib
+import logging
 
-from optparse import OptionParser
+#from optparse import OptionParser
 #from main_thread import *
+import argparse
+import numato
 
-def main:
+def main():
     """ Main entry point to start the service. """
-    #--------START Command Line option parser------------------------------------------------------
-    usage  = "usage: %prog "
-    parser = OptionParser(usage = usage)
-    h_serv_ip       = "Set Service IP [default=%default]"
-    h_serv_port     = "Set Service Port [default=%default]"
-    h_rel_ip        = "Set Remote Relay IP [default=%default]"
-    #h_rel_port      = "Set Remote Relay Port [default=%default]"
-    h_user          = "Set Relay Telnet Username [default=%default]"
-    h_pass          = "Set Relay Telnet Password [default=%default]"
-    
-    parser.add_option("", "--serv_ip"  , dest="serv_ip"  , type="string", default="0.0.0.0"      , help=h_serv_ip)
-    parser.add_option("", "--serv_port", dest="serv_port", type="int"   , default="3000"         , help=h_serv_port)
-    parser.add_option("", "--rel_ip"   , dest="rel_ip"   , type="string", default="192.168.20.30", help=h_rel_ip)
-    #parser.add_option("", "--rel_port" , dest="rel_port" , type="int"   , default="23"           , help=h_rel_port)
-    parser.add_option("", "--username" , dest="username" , type="string", default="admin"        , help=h_user)
-    parser.add_option("", "--password" , dest="password" , type="string", default="admin"        , help=h_pass)
-    
-    (options, args) = parser.parse_args()
-    #--------END Command Line option parser------------------------------------------------------    
+    #--------START Command Line argument parser------------------------------------------------------
+    parser = argparse.ArgumentParser(description="Relay Control Daemon")
 
-    #serv = Main_Thread(options)
-    #serv.daemon = True
-    #serv.run()
+    service = parser.add_argument_group('Daemon Service connection settings')
+    service.add_argument('--ser_ip',
+                         dest='serv_ip',
+                         type=str,
+                         default='0.0.0.0',
+                         help="Service IP",
+                         action="store")
+    service.add_argument('--ser_port',
+                         dest='serv_port',
+                         type=int,
+                         default='3000',
+                         help="Service Port",
+                         action="store")
 
-    host = options.rel_ip
-    username = options.username
-    password = options.password
+    relay = parser.add_argument_group('Relay Bank connection settings')
+    relay.add_argument('--rel_ip',
+                       dest='rel_ip',
+                       type=str,
+                       default='192.168.20.30',
+                       help="Relay Bank IP",
+                       action="store")
+    relay.add_argument('--rel_user',
+                       dest='rel_user',
+                       type=str,
+                       default='admin',
+                       help="Relay Bank Telnet Username",
+                       action="store")
+    relay.add_argument('--rel_pass',
+                       dest='rel_pass',
+                       type=str,
+                       default='admin',
+                       help="Relay Bank Telnet Password",
+                       action="store")
 
-    tn = telnetlib.Telnet(host)
+    args = parser.parse_args()
+    #--------END Command Line argument parser------------------------------------------------------ 
 
-    tn.read_until("User Name: ")
-    tn.write(username + "\n")
-    print 'entered login'
-    if password:
-        tn.read_until("Password: ")
-        tn.write(password + "\n")
-
-    print 'Connected!'
-    #while 1:
-    #    pass
+    relay = numato.Ethernet_Relay(args)
+    relay.daemon = True
+    relay.run()
     sys.exit()
+    
 
 if __name__ == '__main__':
     main()
