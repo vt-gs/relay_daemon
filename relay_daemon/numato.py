@@ -10,9 +10,11 @@
 #   -Intended for use with systemd          #
 #############################################
 
+import sys
 import telnetlib
 import threading
 import logging
+import time
 
 from Queue import Queue
 
@@ -23,22 +25,33 @@ class Ethernet_Relay(threading.Thread):
         self.ip         = args.rel_ip
         self.username   = args.rel_user
         self.password   = args.rel_pass
-        self.logger     = logging.getLogger(args.ssid)
+        self.ssid       = args.ssid
+
+        self.logger     = logging.getLogger(self.ssid)
+        print "Initializing {}".format(self.name)
+        self.logger.info("Initializing {}".format(self.name))
 
         self.connected  = False
         self.tn         = None
         self.q          = Queue()
 
     def run(self):
-        self.logger.info('Launching Relay Thread')
+        print "{:s} Started...".format(self.name)
+        self.logger.info('Launched {:s}'.format(self.name))
         if (not self.connected):
             self.connect()
         while (not self._stop.isSet()):
-            if (not self.q.empty()): #Message for Relay Bank Received
-                msg = self.q.get()
-                print msg
+            if self.connected:
+                if (not self.q.empty()): #Message for Relay Bank Received
+                    msg = self.q.get()
+                    print '{:s} | {:s}'.format(self.name, msg)
+            else:
+                time.sleep(5)
+                self.connect()
 
-        self.logger.warning('{:s} Terminating...'.format(self.name))
+            time.sleep(0.01) #Needed to throttle CPU
+
+        self.logger.warning('{:s} Terminated'.format(self.name))
         sys.exit()
 
     def connect(self):
@@ -50,10 +63,11 @@ class Ethernet_Relay(threading.Thread):
             if self.password:
                 self.tn.read_until("Password: ")
                 self.tn.write(self.password + "\n")
-            self.logger.info('Succesful telnet to relay bank: {:s}'.format(self.ip, ))
+            self.logger.info('Succesful telnet to relay bank: {:s}'.format(self.ip))
             self.connected = True
             print 'Connected!'
         except:
+            self.logger.info('Failed to telnet to relay bank: {:s}'.format(self.ip))
             self.connected = False
 
     def stop(self):

@@ -32,13 +32,13 @@ def main():
 
     service = parser.add_argument_group('Daemon Service connection settings')
     service.add_argument('--ser_ip',
-                         dest='serv_ip',
+                         dest='ser_ip',
                          type=str,
                          default='0.0.0.0',
                          help="Service IP",
                          action="store")
     service.add_argument('--ser_port',
-                         dest='serv_port',
+                         dest='ser_port',
                          type=int,
                          default='3000',
                          help="Service Port",

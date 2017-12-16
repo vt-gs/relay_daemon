@@ -27,7 +27,7 @@ def setup_logger(log_name, level=logging.INFO, ts = None, log_path = None):
     #log_path = os.getcwd() + '/log/' + log_file
     print log_path
 
-    formatter = MyFormatter(fmt='%(asctime)s UTC | %(threadName)13s | %(levelname)8s | %(message)s',datefmt='%Y%m%d %H:%M:%S.%f')
+    formatter = MyFormatter(fmt='%(asctime)s UTC | %(threadName)14s | %(levelname)8s | %(message)s',datefmt='%Y%m%d %H:%M:%S.%f')
     #fileHandler = logging.FileHandler(log_path, mode='w')
     fileHandler = logging.FileHandler(log_path)
     fileHandler.setFormatter(formatter)
