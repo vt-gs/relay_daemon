@@ -1,0 +1,30 @@
+Notes concerning the protocol for communicating with the relay daemon.
+
+Just a collection of ideas at this point.
+
+Background:
+Two major connections to be concerned with for now:  The Service Connection and the Relay Connection.
+This version of the daemon uses Numato Ethernet Relays with telnet connection.  So this connection is pretty well defined by the company already.
+
+Relay Connection:
+-Telnet.
+-Defined on numato website.
+-simple ascii commands over telnet.
+
+Service Connection:
+-Considering three methods:
+    1.  UDP (current version)
+    2.  TCP (older version, simple next step)
+    3.  ZeroMQ  (future version)
+
+-ZeroMQ ideas:
+--pattern under consideration:  Request/Reply.
+--Client requests:
+    - Get State
+    - Set State
+    
+
+
+
+
+
