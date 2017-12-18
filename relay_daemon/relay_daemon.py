@@ -17,6 +17,7 @@ import sys
 import os
 import datetime
 import logging
+import json
 
 #from optparse import OptionParser
 from main_thread import *
@@ -83,9 +84,42 @@ def main():
                        default=startup_ts,
                        help="Daemon startup timestamp",
                        action="store")
+    other.add_argument('--config_file',
+                       dest='config_file',
+                       type=str,
+                       default="relay_config_vul.json",
+                       help="Daemon startup timestamp",
+                       action="store")
 
     args = parser.parse_args()
     #--------END Command Line argument parser------------------------------------------------------ 
+
+    #If Config File is Valid, Override ArgParser
+    try:
+        with open(args.config_file, 'r') as json_data:
+            cfg = json.load(json_data)
+
+        for k in cfg.keys():
+            if k in vars(args):
+                #print k, cfg[k]
+                print "Overriding [{:s}] Argument [{:s}] with Config [{:s}]".format(k, vars(args)[k], cfg[k])
+                vars(args)[k] = cfg[k]
+
+    except Exception as e:
+        print e
+        print 'invalid config file'
+        print 'using option parser....'
+
+
+    print type(args)
+    print vars(args)
+    sys.exit()
+
+
+    print type(args)
+
+
+
 
     main_thread = Main_Thread(args)
     main_thread.daemon = True

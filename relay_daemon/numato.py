@@ -15,6 +15,7 @@ import telnetlib
 import threading
 import logging
 import time
+import binascii
 
 from Queue import Queue
 
@@ -33,7 +34,8 @@ class Ethernet_Relay(threading.Thread):
 
         self.connected  = False
         self.tn         = None
-        self.q          = Queue()
+        self.tx_q       = Queue() #messages into thread
+        self.rx_q       = Queue() #messages from thread
 
     def run(self):
         print "{:s} Started...".format(self.name)
@@ -42,9 +44,13 @@ class Ethernet_Relay(threading.Thread):
             self.connect()
         while (not self._stop.isSet()):
             if self.connected:
-                if (not self.q.empty()): #Message for Relay Bank Received
-                    msg = self.q.get()
+                if (not self.tx_q.empty()): #Message for Relay Bank Received
+                    msg = self.tx_q.get()
                     print '{:s} | {:s}'.format(self.name, msg)
+                    if 'READ' in msg:
+                        self.read_all_relays()
+                        self.rx_q.put(self.state)
+                        
             else:
                 time.sleep(5)
                 self.connect()
@@ -56,19 +62,42 @@ class Ethernet_Relay(threading.Thread):
 
     def connect(self):
         try:
+            self.logger.info('Attempting to telnet to relay bank: {:s}'.format(self.ip))
             self.tn = telnetlib.Telnet(self.ip)
             self.tn.read_until("User Name: ")
             self.tn.write(self.username + "\n")
-            print 'entered login'
+            #print 'entered login'
             if self.password:
                 self.tn.read_until("Password: ")
                 self.tn.write(self.password + "\n")
+            resp = self.tn.read_until('>>')
+            #print resp
             self.logger.info('Succesful telnet to relay bank: {:s}'.format(self.ip))
             self.connected = True
             print 'Connected!'
         except:
             self.logger.info('Failed to telnet to relay bank: {:s}'.format(self.ip))
             self.connected = False
+
+    def disconnect(self):
+        pass
+
+    def read_relay(self, rel_num):
+        """Read Relay status for given relay number"""
+        pass
+
+    def read_all_relays(self):
+        msg = "relay readall\n"
+        self.tn.write(msg)
+        resp = self.tn.read_until('>').strip('\r\n>')
+        self.state = int(resp)
+        return self.state
+
+    def set_relay(self, rel_num):
+        pass
+
+    def relay_write_all(self):
+        pass
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)

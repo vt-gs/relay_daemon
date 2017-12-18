@@ -1,0 +1,67 @@
+{
+    "ssid":"VHF",
+    "ser_ip":"0.0.0.0",
+    "ser_port":"3000",
+    "rel_ip":"192.168.20.30",
+    "rel_user":"admin",
+    "rel_pass":"admin",
+    "log_path":"/log/relayd",
+    "relays":[
+    {
+        "idx":"0",
+        "name":"VHF LNA",
+        "device":"LNA",
+        "groups":"VHF",
+        "wx":"off"
+    },
+    {
+        "idx":"1",
+        "name":"VHF POL",
+        "device":"POL",
+        "groups":"VHF",
+        "wx":"off"
+    },
+    {
+        "idx":"2",
+        "name":"UHF LNA",
+        "device":"LNA",
+        "groups":"UHF",
+        "wx":"off"
+    },
+    {
+        "idx":"3",
+        "name":"UHF POL",
+        "device":"POL",
+        "groups":"UHF",
+        "wx":"off"
+        },
+    {
+        "idx":"4",
+        "name":"USRP",
+        "device":"USRP",
+        "groups":["VHF","UHF"],
+        "wx":"off"
+    },
+    {
+        "idx":"5",
+        "name":"Tracking",
+        "device":"TRACK",
+        "groups":["VHF","UHF"],
+        "wx":"off"
+    },
+    {
+        "idx":"6",
+        "name":"TX Power Amplifier",
+        "device":"TX_AMP",
+        "groups":["VHF","UHF"],
+        "wx":"off"
+    },
+    {
+        "idx":"7",
+        "name":"NA",
+        "device":"NA",
+        "groups":"NA",
+        "wx":"off"
+    }
+    ]
+}

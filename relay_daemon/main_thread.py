@@ -60,8 +60,15 @@ class Main_Thread(threading.Thread):
                     if (not self.service_thread.q.empty()):
                         msg = self.service_thread.q.get()
                         print '{:s} | Service Thread RX Message: {:s}'.format(self.name, msg)
+                        self.relay_thread.tx_q.put(msg)
+                    if (not self.relay_thread.rx_q.empty()):
+                        rel_msg = self.relay_thread.rx_q.get()
+                        print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
+                        self._send_service_resp(rel_msg)
 
-                        self.relay_thread.q.put(msg)
+                    #print "Querying relays"
+                    #rel_state, rel_int = self.relay_thread.read_all_relays()
+                    #print rel_state, rel_int
                     #time.sleep(1)
                     pass
             
@@ -75,9 +82,13 @@ class Main_Thread(threading.Thread):
             self.service_thread.stop()
             self.service_thread.join() # wait for the thread to finish what it's doing
             self.logger.warning('Terminating {:s}...'.format(self.name))
-
             sys.exit()
         sys.exit()
+
+    def _send_service_resp(self,msg):
+        self.service_thread._send_resp(msg)
+        
+
 
     def set_state(self, state):
         self.state = state
@@ -96,7 +107,7 @@ class Main_Thread(threading.Thread):
             self.relay_thread.daemon = True
 
             #Initialize Server Thread
-            self.logger.info('Setting up Server Thread')
+            self.logger.info('Setting up Service_Thread')
             self.service_thread = service_thread.Service_Thread(self.args) 
             self.service_thread.daemon = True
 
@@ -104,7 +115,7 @@ class Main_Thread(threading.Thread):
             self.logger.info('Launching Relay_Thread')
             self.relay_thread.start() #non-blocking
     
-            self.logger.info('Launching Server_Thread')
+            self.logger.info('Launching Service_Thread')
             self.service_thread.start() #non-blocking
 
             return True

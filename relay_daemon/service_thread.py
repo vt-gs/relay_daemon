@@ -29,6 +29,8 @@ class Service_Thread(threading.Thread):
         self.port   = args.ser_port
         self.q      = Queue()
 
+        self.state  = 0x00
+
         self.logger = logging.getLogger(self.ssid)
         print "Initializing {}".format(self.name)
         self.logger.info("Initializing {}".format(self.name))
@@ -75,6 +77,9 @@ class Service_Thread(threading.Thread):
         self.rx_sock.close()
         self.logger.warning('{:s} Terminated'.format(self.name))
         sys.exit()
+
+    def _send_resp(self, msg):
+        print "{:s} | Sending Response: {:s}".format(self.name, str(msg))
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)
