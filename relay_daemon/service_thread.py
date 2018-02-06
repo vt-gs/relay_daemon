@@ -12,11 +12,11 @@
 
 import threading
 import time
-import socket
-import errno
+import pika
 
 from Queue import Queue
 from logger import *
+import rabbitcomms
 
 class Service_Thread(threading.Thread):
     def __init__ (self, args):
@@ -25,11 +25,14 @@ class Service_Thread(threading.Thread):
         self.args   = args
         self.ssid   = args.ssid
 
-        self.ip     = args.ser_ip
-        self.port   = args.ser_port
-        self.q      = Queue()
+        self.ip     = args.broker_ip
+        self.port   = args.broker_port
 
-        self.state  = 0x00
+        self.q      = Queue()
+        self.state  = 'BOOT'
+
+        self.producer = None
+        self.consumer = None
 
         self.logger = logging.getLogger(self.ssid)
         print "Initializing {}".format(self.name)
@@ -39,13 +42,9 @@ class Service_Thread(threading.Thread):
         print "{:s} Started...".format(self.name)
         self.logger.info('Launched {:s}'.format(self.name))
         try:
-            self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.rx_sock.settimeout(0.01) #
-            self.rx_sock.setblocking(0)
-            self.rx_sock.bind((self.ip, self.port))
-            self.logger.info("Ready to receive Service data on: [{}:{}]".format(self.ip, self.port))
-            print "Ready to receive Service data on: [{}:{}]".format(self.ip, self.port)
+            #Connect to RabbitMQ Broker
+            self.logger.info("Attempting to Connect to Rabbit MQ Broker: [{}:{}]".format(self.ip, self.port))
+            print "Connected to Rabbit MQ Broker: [{}:{}]".format(self.ip, self.port)
         except Exception as e:
             print 'Some other Exception occurred:', e
             self.logger.info("Could not set up Service data on: {}:{}".format(self.ip, self.port))
@@ -56,7 +55,7 @@ class Service_Thread(threading.Thread):
             try:
                 #data, addr = self.rx_sock.recvfrom(1024)
                 data, addr= self.rx_sock.recvfrom(1024)
-                data = data.strip('\n') 
+                data = data.strip('\n')
                 if data:
                     #print addr, data
                     print "\n[{:s}:{:d}]->[{:s}:{:d}] Received User Message: {:s}".format(addr[0], addr[1], self.ip, self.port, data)
@@ -71,7 +70,7 @@ class Service_Thread(threading.Thread):
             except Exception as e:
                 print 'Some other Exception occurred:', e
                 self.logger.info(e)
-            
+
             time.sleep(0.01) #Needed to throttle CPU
 
         self.rx_sock.close()

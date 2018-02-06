@@ -12,19 +12,7 @@ Relay Connection:
 -simple ascii commands over telnet.
 
 Service Connection:
--Considering three methods:
-    1.  UDP (current version)
-    2.  TCP (older version, simple next step)
-    3.  ZeroMQ  (future version)
-
--ZeroMQ ideas:
---pattern under consideration:  Request/Reply.
---Client requests:
-    - Get State
-    - Set State
+-RabbitMQ
     
-
-
-
 
 

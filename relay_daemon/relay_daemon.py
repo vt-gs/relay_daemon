@@ -32,17 +32,29 @@ def main():
     parser = argparse.ArgumentParser(description="Relay Control Daemon")
 
     service = parser.add_argument_group('Daemon Service connection settings')
-    service.add_argument('--ser_ip',
-                         dest='ser_ip',
+    service.add_argument('--broker_ip',
+                         dest='broker_ip',
                          type=str,
                          default='0.0.0.0',
-                         help="Service IP",
+                         help="RabbitMQ Broker IP",
                          action="store")
-    service.add_argument('--ser_port',
-                         dest='ser_port',
+    service.add_argument('--broker_port',
+                         dest='broker_port',
                          type=int,
-                         default='3000',
-                         help="Service Port",
+                         default='5672',
+                         help="RabbitMQ Broker Port",
+                         action="store")
+    service.add_argument('--broker_user',
+                         dest='broker_user',
+                         type=str,
+                         default='guest',
+                         help="Broker Username",
+                         action="store")
+    service.add_argument('--broker_pass',
+                         dest='broker_pass',
+                         type=str,
+                         default='guest',
+                         help="Broker Password",
                          action="store")
 
     relay = parser.add_argument_group('Relay bank connection settings')
@@ -69,7 +81,7 @@ def main():
     other.add_argument('--ssid',
                        dest='ssid',
                        type=str,
-                       default='VUL',
+                       default='VU',
                        help="Subsystem ID",
                        action="store")
     other.add_argument('--log_path',
@@ -87,28 +99,30 @@ def main():
     other.add_argument('--config_file',
                        dest='config_file',
                        type=str,
-                       default="relay_config_vul.json",
+                       default=None,
                        help="Daemon startup timestamp",
                        action="store")
 
     args = parser.parse_args()
-    #--------END Command Line argument parser------------------------------------------------------ 
+    #--------END Command Line argument parser------------------------------------------------------
 
     #If Config File is Valid, Override ArgParser
-    try:
-        with open(args.config_file, 'r') as json_data:
-            cfg = json.load(json_data)
+    if args.config_file != None:
+        try:
+            with open(args.config_file, 'r') as json_data:
+                cfg = json.load(json_data)
 
-        for k in cfg.keys():
-            if k in vars(args):
-                #print k, cfg[k]
-                print "Overriding [{:s}] Argument [{:s}] with Config [{:s}]".format(k, vars(args)[k], cfg[k])
-                vars(args)[k] = cfg[k]
+            print cfg
+            for k in cfg.keys():
+                if k in vars(args):
+                    print k, cfg[k]
+                    print "Overriding [{:s}] Argument [{:s}] with Config [{:s}]".format(k, str(vars(args)[k]), str(cfg[k]))
+                    vars(args)[k] = cfg[k]
 
-    except Exception as e:
-        print e
-        print 'invalid config file'
-        print 'using option parser....'
+        except Exception as e:
+            print e
+            print 'invalid config file'
+            print 'using option parser....'
 
 
     print type(args)
@@ -125,9 +139,7 @@ def main():
     main_thread.daemon = True
     main_thread.run()
     sys.exit()
-    
+
 
 if __name__ == '__main__':
     main()
-    
-

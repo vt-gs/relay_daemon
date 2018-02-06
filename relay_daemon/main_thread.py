@@ -24,7 +24,7 @@ class Main_Thread(threading.Thread):
         self.args = args
         self.ssid = args.ssid
 
-        self.state  = 'BOOT' #BOOT, STANDBY, ACTIVE, FAULT
+        self.state  = 'BOOT' #BOOT, STANDBY, ACTIVE, WX, FAULT
 
         #setup logger
         self.main_log_fh = setup_logger(self.ssid, ts=args.startup_ts, log_path=args.log_path)
@@ -34,24 +34,22 @@ class Main_Thread(threading.Thread):
         print "{:s} Started...".format(self.name)
         self.logger.info('Launched {:s}'.format(self.name))
         try:
-            while (not self._stop.isSet()): 
+            while (not self._stop.isSet()):
                 if self.state == 'BOOT':
                     #Daemon activating for the first time
                     #Activate all threads
                     #State Change:  BOOT --> STANDBY
                     #All Threads Started
                     if self._init_threads():#if all threads activate succesfully
-                        self.logger.info('Successfully Launched Threads, Switching to ACTIVE State')
-                        #self.set_state_standby()
-                        self.set_state('ACTIVE')
+                        
+                        self.logger.info('Successfully Launched Threads, Switching to STANDBY State')
+                        self.set_state('STANDBY')
                     else:
-                        self.set_state('FAULT')
+                        self.set_state('FAULT', 'Failed to Launch Threads')
                     pass
                 elif self.state == 'STANDBY':
                     pass
-                elif self.state == 'WX_INHIBIT':
-                    pass
-                elif self.state == 'ADM_INHIBIT':
+                elif self.state == 'WX':
                     pass
                 elif self.state == 'ACTIVE':
                     #Describe ACTIVE here
@@ -71,7 +69,7 @@ class Main_Thread(threading.Thread):
                     #print rel_state, rel_int
                     #time.sleep(1)
                     pass
-            
+
                 time.sleep(0.01) #Needed to throttle CPU
 
         except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
@@ -87,14 +85,20 @@ class Main_Thread(threading.Thread):
 
     def _send_service_resp(self,msg):
         self.service_thread._send_resp(msg)
-        
 
 
-    def set_state(self, state):
+
+    def set_state(self, state, error=None):
         self.state = state
         self.logger.info('Changed STATE to: {:s}'.format(self.state))
+        if self.state == 'BOOT':
+            pass
+        if self.state == 'STANDBY':
+            pass
         if self.state == 'ACTIVE':
             time.sleep(1)
+        if self.state == 'WX':
+            pass
         if self.state == 'FAULT':
             pass
             time.sleep(10)
@@ -103,18 +107,18 @@ class Main_Thread(threading.Thread):
         try:
             #Initialize Relay Thread
             self.logger.info('Setting up Relay_Thread')
-            self.relay_thread = numato.Ethernet_Relay(self.args) 
+            self.relay_thread = numato.Ethernet_Relay(self.args)
             self.relay_thread.daemon = True
 
             #Initialize Server Thread
             self.logger.info('Setting up Service_Thread')
-            self.service_thread = service_thread.Service_Thread(self.args) 
+            self.service_thread = service_thread.Service_Thread(self.args)
             self.service_thread.daemon = True
 
             #Launch threads
             self.logger.info('Launching Relay_Thread')
             self.relay_thread.start() #non-blocking
-    
+
             self.logger.info('Launching Service_Thread')
             self.service_thread.start() #non-blocking
 
