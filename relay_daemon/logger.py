@@ -18,7 +18,7 @@ class MyFormatter(logging.Formatter):
         return s
 
 
-def setup_logger(log_name, level=logging.INFO, ts = None, log_path = None):
+def setup_logger(log_name, level=logging.DEBUG, ts = None, log_path = None):
     l = logging.getLogger(log_name)
     if ts == None: ts = str(get_uptime())
     log_file = "relayd_{:s}_{:s}.log".format(log_name, ts)
@@ -36,6 +36,5 @@ def setup_logger(log_name, level=logging.INFO, ts = None, log_path = None):
     l.setLevel(level)
     l.addHandler(fileHandler)
     l.info('Logger Initialized')
-    #l.addHandler(streamHandler) 
+    #l.addHandler(streamHandler)
     return fileHandler
-

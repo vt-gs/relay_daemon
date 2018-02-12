@@ -16,69 +16,76 @@ import pika
 
 from Queue import Queue
 from logger import *
-import rabbitcomms
+from rabbitcomms import BrokerConsumer
+from rabbitcomms import BrokerProducer
+
+class Consumer(BrokerConsumer):
+    def __init__(self, cfg, loggername=None):
+        super(Consumer, self).__init__(cfg, loggername)
+        self.cb = None
+        self.q  = Queue()
+
+    def process_message(self, method, properties, body):
+        msg = 'Received message {:s} from {:s} {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
+        self.q.put(msg)
 
 class Service_Thread(threading.Thread):
-    def __init__ (self, args):
+    def __init__ (self, ssid, cfg):
         threading.Thread.__init__(self, name = 'Service_Thread')
         self._stop  = threading.Event()
-        self.args   = args
-        self.ssid   = args.ssid
+        self.ssid   = ssid
+        self.cfg    = cfg
 
-        self.ip     = args.broker_ip
-        self.port   = args.broker_port
+        self.rx_q   = Queue() #MEssages received from Broker, command
+        self.tx_q   = Queue() #Messages sent to broker, feedback
 
-        self.q      = Queue()
-        self.state  = 'BOOT'
+        self.consumer = Consumer(cfg, loggername=self.ssid)
+        self.consume_thread = threading.Thread(target=self.consumer.run, name = 'Serv_Consumer')
+        self.consume_thread.daemon = True
 
-        self.producer = None
-        self.consumer = None
+        self.producer = BrokerProducer(cfg, loggername=self.ssid)
+        self.produce_thread = threading.Thread(target=self.producer.run, name = 'Serv_Producer')
+        self.produce_thread.daemon = True
+
+        self.connected = False
 
         self.logger = logging.getLogger(self.ssid)
         print "Initializing {}".format(self.name)
         self.logger.info("Initializing {}".format(self.name))
 
+
     def run(self):
         print "{:s} Started...".format(self.name)
         self.logger.info('Launched {:s}'.format(self.name))
-        try:
-            #Connect to RabbitMQ Broker
-            self.logger.info("Attempting to Connect to Rabbit MQ Broker: [{}:{}]".format(self.ip, self.port))
-            print "Connected to Rabbit MQ Broker: [{}:{}]".format(self.ip, self.port)
-        except Exception as e:
-            print 'Some other Exception occurred:', e
-            self.logger.info("Could not set up Service data on: {}:{}".format(self.ip, self.port))
-            self.logger.info(e)
-            sys.exit()
 
+        #Start consumer
+        self.consume_thread.start()
+        #star producer
+        self.produce_thread.start()
         while (not self._stop.isSet()):
-            try:
-                #data, addr = self.rx_sock.recvfrom(1024)
-                data, addr= self.rx_sock.recvfrom(1024)
-                data = data.strip('\n')
-                if data:
-                    #print addr, data
-                    print "\n[{:s}:{:d}]->[{:s}:{:d}] Received User Message: {:s}".format(addr[0], addr[1], self.ip, self.port, data)
-                    self.logger.info("[{:s}:{:d}]->[{:s}:{:d}] Received User Message: {:s}".format(addr[0], addr[1], self.ip, self.port, data))
-                    self.q.put(data)
-            except socket.error, v:
-                errorcode=v[0]
-                #print v
-                if errorcode==errno.EWOULDBLOCK:  #Expected, No data on uplink
-                    #print 'socket timeout'
-                    pass
-            except Exception as e:
-                print 'Some other Exception occurred:', e
-                self.logger.info(e)
+            if (self.consumer.connected and self.producer.connected):
+                self.connected = True
+            else:
+                self.connected = False
 
-            time.sleep(0.01) #Needed to throttle CPU
+            if self.connected:
+                if (not self.consumer.q.empty()): #received a message on command q
+                    rx_msg = self.consumer.q.get()
+                    self.rx_q.put(rx_msg)
+                elif (not self.tx_q.empty()):#essage to send
+                    tx_msg = self.tx_q.get()
+                    self.producer.send(tx_msg)
 
-        self.rx_sock.close()
+            time.sleep(0.01)#needed to throttle
+
+
+        self.consumer.stop_consuming()
+        self.producer.stop_producing()
+        time.sleep(1)
+        self.consumer.stop()
+        self.producer.stop()
         self.logger.warning('{:s} Terminated'.format(self.name))
         sys.exit()
-
-    def _send_resp(self, msg):
-        print "{:s} | Sending Response: {:s}".format(self.name, str(msg))
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)

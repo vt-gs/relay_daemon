@@ -31,111 +31,36 @@ def main():
     #--------START Command Line argument parser------------------------------------------------------
     parser = argparse.ArgumentParser(description="Relay Control Daemon")
 
-    service = parser.add_argument_group('Daemon Service connection settings')
-    service.add_argument('--broker_ip',
-                         dest='broker_ip',
-                         type=str,
-                         default='0.0.0.0',
-                         help="RabbitMQ Broker IP",
-                         action="store")
-    service.add_argument('--broker_port',
-                         dest='broker_port',
-                         type=int,
-                         default='5672',
-                         help="RabbitMQ Broker Port",
-                         action="store")
-    service.add_argument('--broker_user',
-                         dest='broker_user',
-                         type=str,
-                         default='guest',
-                         help="Broker Username",
-                         action="store")
-    service.add_argument('--broker_pass',
-                         dest='broker_pass',
-                         type=str,
-                         default='guest',
-                         help="Broker Password",
-                         action="store")
-
-    relay = parser.add_argument_group('Relay bank connection settings')
-    relay.add_argument('--rel_ip',
-                       dest='rel_ip',
+    cfg = parser.add_argument_group('Daemon Configuration File')
+    cfg.add_argument('--cfg_path',
+                       dest='cfg_path',
                        type=str,
-                       default='192.168.20.30',
-                       help="Relay Bank IP",
+                       default=os.getcwd(),
+                       help="Daemon Configuration File Path",
                        action="store")
-    relay.add_argument('--rel_user',
-                       dest='rel_user',
+    cfg.add_argument('--cfg_file',
+                       dest='cfg_file',
                        type=str,
-                       default='admin',
-                       help="Relay Bank Telnet Username",
-                       action="store")
-    relay.add_argument('--rel_pass',
-                       dest='rel_pass',
-                       type=str,
-                       default='admin',
-                       help="Relay Bank Telnet Password",
-                       action="store")
-
-    other = parser.add_argument_group('Other daemon settings')
-    other.add_argument('--ssid',
-                       dest='ssid',
-                       type=str,
-                       default='VU',
-                       help="Subsystem ID",
-                       action="store")
-    other.add_argument('--log_path',
-                       dest='log_path',
-                       type=str,
-                       default='/log/relayd',
-                       help="Relay daemon logging path",
-                       action="store")
-    other.add_argument('--startup_ts',
-                       dest='startup_ts',
-                       type=str,
-                       default=startup_ts,
-                       help="Daemon startup timestamp",
-                       action="store")
-    other.add_argument('--config_file',
-                       dest='config_file',
-                       type=str,
-                       default=None,
-                       help="Daemon startup timestamp",
+                       default="relay_config_vu.json",
+                       help="Daemon Configuration File",
                        action="store")
 
     args = parser.parse_args()
     #--------END Command Line argument parser------------------------------------------------------
 
-    #If Config File is Valid, Override ArgParser
-    if args.config_file != None:
-        try:
-            with open(args.config_file, 'r') as json_data:
-                cfg = json.load(json_data)
+    fp_cfg = '/'.join([args.cfg_path,args.cfg_file])
+    print fp_cfg
+    if not os.path.isfile(fp_cfg) == True:
+        print 'ERROR: Invalid Configuration File: {:s}'.format(fp_cfg)
+        sys.exit()
+    print 'Importing configuration File: {:s}'.format(fp_cfg)
+    with open(fp_cfg, 'r') as json_data:
+        cfg = json.load(json_data)
+        json_data.close()
+    cfg['startup_ts'] = startup_ts
+    #print cfg
 
-            print cfg
-            for k in cfg.keys():
-                if k in vars(args):
-                    print k, cfg[k]
-                    print "Overriding [{:s}] Argument [{:s}] with Config [{:s}]".format(k, str(vars(args)[k]), str(cfg[k]))
-                    vars(args)[k] = cfg[k]
-
-        except Exception as e:
-            print e
-            print 'invalid config file'
-            print 'using option parser....'
-
-
-    print type(args)
-    print vars(args)
-    sys.exit()
-
-
-    print type(args)
-
-
-
-
-    main_thread = Main_Thread(args)
+    main_thread = Main_Thread(cfg)
     main_thread.daemon = True
     main_thread.run()
     sys.exit()
