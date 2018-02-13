@@ -83,11 +83,11 @@ class Main_Thread(threading.Thread):
 
         #if (not self.tx_q.empty()): #received a messages
             #msg = self.tx_q.get()
-        msg = '[{:d}] test'.format(self.msg_cnt)
-        print "TX MSG:", msg
-        self.service_thread.tx_q.put(msg)
+        #msg = '[{:d}] test'.format(self.msg_cnt)
+        #print "TX MSG:", msg
+        #self.service_thread.tx_q.put(msg)
         #self.producer.send(msg, self.cfg['produce_key'])
-        self.msg_cnt += 1
+        #self.msg_cnt += 1
 
     def _handle_state_active(self):
         #Describe ACTIVE here
