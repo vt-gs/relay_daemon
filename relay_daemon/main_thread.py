@@ -78,7 +78,7 @@ class Main_Thread(threading.Thread):
             self.set_state('FAULT', 'Failed to Launch Threads')
 
     def _handle_state_standby(self):
-        if not self.service_thread.connected:
+        if not self.service_thread.get_connection_state():
             self.set_state('FAULT', 'Service Thread Not connected to Broker')
 
         #if (not self.tx_q.empty()): #received a messages
@@ -88,7 +88,6 @@ class Main_Thread(threading.Thread):
         self.service_thread.tx_q.put(msg)
         #self.producer.send(msg, self.cfg['produce_key'])
         self.msg_cnt += 1
-
 
     def _handle_state_active(self):
         #Describe ACTIVE here

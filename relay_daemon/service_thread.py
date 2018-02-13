@@ -22,12 +22,22 @@ from rabbitcomms import BrokerProducer
 class Consumer(BrokerConsumer):
     def __init__(self, cfg, loggername=None):
         super(Consumer, self).__init__(cfg, loggername)
-        self.cb = None
-        self.q  = Queue()
+        self.q  = Queue() #place received messages here.
 
     def process_message(self, method, properties, body):
         msg = 'Received message {:s} from {:s} {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
         self.q.put(msg)
+
+    def get_connection_state(self):
+        return self.connected
+
+class Producer(BrokerProducer):
+    def __init__(self, cfg, loggername=None):
+        super(Producer, self).__init__(cfg, loggername)
+
+    def get_connection_state(self):
+        return self.connected
+
 
 class Service_Thread(threading.Thread):
     def __init__ (self, ssid, cfg):
@@ -43,7 +53,7 @@ class Service_Thread(threading.Thread):
         self.consume_thread = threading.Thread(target=self.consumer.run, name = 'Serv_Consumer')
         self.consume_thread.daemon = True
 
-        self.producer = BrokerProducer(cfg, loggername=self.ssid)
+        self.producer = Producer(cfg, loggername=self.ssid)
         self.produce_thread = threading.Thread(target=self.producer.run, name = 'Serv_Producer')
         self.produce_thread.daemon = True
 
@@ -62,11 +72,14 @@ class Service_Thread(threading.Thread):
         self.consume_thread.start()
         #star producer
         self.produce_thread.start()
+
         while (not self._stop.isSet()):
-            if (self.consumer.connected and self.producer.connected):
+            if (self.consumer.get_connection_state() and self.producer.get_connection_state()):
                 self.connected = True
             else:
                 self.connected = False
+
+            print self.connected
 
             if self.connected:
                 if (not self.consumer.q.empty()): #received a message on command q
@@ -78,7 +91,6 @@ class Service_Thread(threading.Thread):
 
             time.sleep(0.01)#needed to throttle
 
-
         self.consumer.stop_consuming()
         self.producer.stop_producing()
         time.sleep(1)
@@ -86,6 +98,9 @@ class Service_Thread(threading.Thread):
         self.producer.stop()
         self.logger.warning('{:s} Terminated'.format(self.name))
         sys.exit()
+
+    def get_connection_state(self):
+        return self.connected
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)
