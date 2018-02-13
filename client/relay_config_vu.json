@@ -1,0 +1,74 @@
+{
+    "ssid":"VU",
+    "log_path":"/log/relay_client",
+    "log_level":"DEBUG",
+    "broker":{
+        "ip":"0.0.0.0",
+        "port":5672,
+        "vhost":"VU",
+        "user":"vu_relay_user",
+        "pass":"password",
+        "exchange":"RELAY",
+        "exch_type":"topic",
+        "durable":"True",
+        "produce_key":"vu.relay.command",
+        "consume_key":"vu.relay.feedback",
+        "app_name":"vu_relay_client",
+        "retry_wait":5
+    },
+    "relay":{
+        "ip":"192.168.20.30",
+        "user":"admin",
+        "pass":"admin",
+        "map":[
+        {
+            "idx":"0",
+            "name":"VHF LNA",
+            "device":"LNA",
+            "groups":"VHF"
+        },
+        {
+            "idx":"1",
+            "name":"VHF POL",
+            "device":"POL",
+            "groups":"VHF"
+        },
+        {
+            "idx":"2",
+            "name":"UHF LNA",
+            "device":"LNA",
+            "groups":"UHF"
+        },
+        {
+            "idx":"3",
+            "name":"UHF POL",
+            "device":"POL",
+            "groups":"UHF"
+            },
+        {
+            "idx":"4",
+            "name":"USRP",
+            "device":"USRP",
+            "groups":["VHF","UHF"]
+        },
+        {
+            "idx":"5",
+            "name":"Tracking",
+            "device":"TRACK",
+            "groups":["VHF","UHF"]
+        },
+        {
+            "idx":"6",
+            "name":"TX Power Amplifier",
+            "device":"TX_AMP",
+            "groups":["VHF","UHF"]
+        },
+        {
+            "idx":"7",
+            "name":"NA",
+            "device":"NA",
+            "groups":"NA"
+        }
+        ]
+    }
+}

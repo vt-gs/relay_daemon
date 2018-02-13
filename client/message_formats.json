@@ -1,0 +1,109 @@
+{
+    "protocol":"vtgs_relay",
+    "version":"1.0",
+    "messages":{
+        "set":[
+            {
+                "session_id":"uuid",
+                "type": "set",
+                "sub_type": "device",
+                "name": "VHF_LNA",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "set",
+                "sub_type": "group",
+                "name": "VHF",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "set",
+                "sub_type": "channel",
+                "name": "0",
+                "value": "True"
+            }
+        ],
+        "get":[
+            {
+                "session_id":"uuid",
+                "type": "get",
+                "sub_type": "device",
+                "name": "VHF_LNA",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "get",
+                "sub_type": "group",
+                "name": "VHF",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "get",
+                "sub_type": "channel",
+                "name": "0",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type":"get",
+                "sub_type": "channel",
+                "name":"all",
+                "value": "True"
+            }
+        ],
+        "feedback":[
+            {
+                "session_id":"uuid",
+                "type": "feedback",
+                "sub_type": "device",
+                "name": "VHF_LNA",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "feedback",
+                "sub_type": "group",
+                "name": "VHF",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type": "feedback",
+                "sub_type": "channel",
+                "name": "0",
+                "value": "True"
+            },
+            {
+                "session_id":"uuid",
+                "type":"feedback",
+                "sub_type": "channel",
+                "name":"all",
+                "value": "True"
+            }
+        ]
+    }
+}
+
+
+{
+    "protocol":"vtgs_relay",
+    "version":"1.0",
+    "control":[
+        {
+            "type":"control",
+            "sub_type": "session_request",
+        },
+        {
+            "type":"control",
+            "sub_type": "session_response",
+            "session_id":"uuid"
+        }
+    ],
+    "command":[
+
+    ],
+}
