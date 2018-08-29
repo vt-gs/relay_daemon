@@ -46,7 +46,7 @@ class Service_Thread(threading.Thread):
         self.ssid   = ssid
         self.cfg    = cfg
 
-        self.rx_q   = Queue() #MEssages received from Broker, command
+        self.rx_q   = Queue() #Messages received from Broker, command
         self.tx_q   = Queue() #Messages sent to broker, feedback
 
         self.consumer = Consumer(cfg, loggername=self.ssid)
@@ -88,8 +88,12 @@ class Service_Thread(threading.Thread):
                 elif (not self.tx_q.empty()):#essage to send
                     tx_msg = self.tx_q.get()
                     self.producer.send(tx_msg)
+            else:
+                print "Waiting for connection to rabbitmq broker..."
+                time.sleep(2)
 
-            time.sleep(0.01)#needed to throttle
+
+            time.sleep(0.01) #needed to throttle
 
         self.consumer.stop_consuming()
         self.producer.stop_producing()
