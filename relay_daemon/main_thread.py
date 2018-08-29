@@ -72,7 +72,7 @@ class Main_Thread(threading.Thread):
         #Activate all threads
         #State Change:  BOOT --> STANDBY
         #All Threads Started
-        if self._init_threads():#if all threads activate succesfully
+        if self._init_threads(): #if all threads activate succesfully
             self.set_state('STANDBY', 'Successfully Launched Threads')
         else:
             self.set_state('FAULT', 'Failed to Launch Threads')
