@@ -50,6 +50,8 @@ class Main_Thread(threading.Thread):
                     self._handle_state_fault()
                 time.sleep(0.01) #Needed to throttle CPU
 
+		time.sleep(0.1)
+
         except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
             print "\nCaught CTRL-C, Killing Threads..."
             self.logger.warning('Caught CTRL-C, Terminating Threads...')
@@ -73,8 +75,10 @@ class Main_Thread(threading.Thread):
         #State Change:  BOOT --> STANDBY
         #All Threads Started
         if self._init_threads(): #if all threads activate succesfully
+            print "All threads launched, switching to STANDBY state"
             self.set_state('STANDBY', 'Successfully Launched Threads')
         else:
+            print "All threads did not launch correctly, switching to FAULT state"
             self.set_state('FAULT', 'Failed to Launch Threads')
 
     def _handle_state_standby(self):
