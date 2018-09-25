@@ -56,8 +56,8 @@ class Main_Thread(threading.Thread):
         except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
             print "\nCaught CTRL-C, Killing Threads..."
             self.logger.warning('Caught CTRL-C, Terminating Threads...')
-            #self.relay_thread.stop()
-            #self.relay_thread.join() # wait for the thread to finish what it's doing
+            self.relay_thread.stop()
+            self.relay_thread.join() # wait for the thread to finish what it's doing
             self.service_thread.stop()
             self.service_thread.join() # wait for the thread to finish what it's doing
             self.logger.warning('Terminating {:s}...'.format(self.name))
@@ -87,6 +87,7 @@ class Main_Thread(threading.Thread):
             self.set_state('FAULT', 'Service Thread Not connected to Broker')
         else:
             time.sleep(2)
+            print "Successfully connected, switching to ACTIVE state"
             self.set_state('ACTIVE', 'Successfully connected to broker')
 
         #if (not self.tx_q.empty()): #received a messages
@@ -141,9 +142,9 @@ class Main_Thread(threading.Thread):
     def _init_threads(self):
         try:
             #Initialize Relay Thread
-            #self.logger.info('Setting up Relay_Thread')
-            #self.relay_thread = numato.Ethernet_Relay(self.args)
-            #self.relay_thread.daemon = True
+            self.logger.info('Setting up Relay_Thread')
+            self.relay_thread = numato.Ethernet_Relay(self.ssid,self.cfg['relay'])
+            self.relay_thread.daemon = True
 
             #Initialize Server Thread
             self.logger.info('Setting up Service_Thread')
@@ -151,8 +152,8 @@ class Main_Thread(threading.Thread):
             self.service_thread.daemon = True
 
             #Launch threads
-            #self.logger.info('Launching Relay_Thread')
-            #self.relay_thread.start() #non-blocking
+            self.logger.info('Launching Relay_Thread')
+            self.relay_thread.start() #non-blocking
 
             self.logger.info('Launching Service_Thread')
             self.service_thread.start() #non-blocking
