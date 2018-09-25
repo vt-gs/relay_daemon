@@ -20,13 +20,13 @@ import binascii
 from Queue import Queue
 
 class Ethernet_Relay(threading.Thread):
-    def __init__ (self, args):
+    def __init__ (self, ssid, cfg):
         threading.Thread.__init__(self, name = 'Relay_Thread')
         self._stop      = threading.Event()
-        self.ip         = args.rel_ip
-        self.username   = args.rel_user
-        self.password   = args.rel_pass
-        self.ssid       = args.ssid
+        self.ip         = cfg['ip']
+        self.username   = cfg['user']
+        self.password   = cfg['pass']
+        self.ssid       = ssid
 
         self.logger     = logging.getLogger(self.ssid)
         print "Initializing {}".format(self.name)
