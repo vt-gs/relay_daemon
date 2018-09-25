@@ -105,7 +105,7 @@ class Main_Thread(threading.Thread):
         if (not self.service_thread.rx_q.empty()):
             msg = self.service_thread.rx_q.get()
             print '{:s} | Service Thread RX Message: {:s}'.format(self.name, msg)
-#            self.relay_thread.tx_q.put(msg)
+            self.relay_thread.tx_q.put(msg)
 #        if (not self.relay_thread.rx_q.empty()):
 #            rel_msg = self.relay_thread.rx_q.get()
 #            print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
