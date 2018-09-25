@@ -30,7 +30,8 @@ class Main_Thread(threading.Thread):
         self.state  = 'BOOT' #BOOT, STANDBY, ACTIVE, WX, FAULT
         self.msg_cnt = 0
         #setup logger
-        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts=self.startup_ts, log_path=self.log_path)
+#        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts=self.startup_ts, log_path=self.log_path)
+        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts="testing", log_path=self.log_path)
         self.logger = logging.getLogger(self.ssid) #main logger
 
     def run(self):
@@ -84,6 +85,9 @@ class Main_Thread(threading.Thread):
     def _handle_state_standby(self):
         if not self.service_thread.get_connection_state():
             self.set_state('FAULT', 'Service Thread Not connected to Broker')
+        else:
+            time.sleep(2)
+            self.set_state('ACTIVE', 'Successfully connected to broker')
 
         #if (not self.tx_q.empty()): #received a messages
             #msg = self.tx_q.get()
@@ -97,14 +101,14 @@ class Main_Thread(threading.Thread):
         #Describe ACTIVE here
         #read uplink Queue from C2 Radio thread
         #print 'ACTIVE'
-        if (not self.service_thread.q.empty()):
-            msg = self.service_thread.q.get()
+        if (not self.service_thread.rx_q.empty()):
+            msg = self.service_thread.rx_q.get()
             print '{:s} | Service Thread RX Message: {:s}'.format(self.name, msg)
-            self.relay_thread.tx_q.put(msg)
-        if (not self.relay_thread.rx_q.empty()):
-            rel_msg = self.relay_thread.rx_q.get()
-            print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
-            self._send_service_resp(rel_msg)
+#            self.relay_thread.tx_q.put(msg)
+#        if (not self.relay_thread.rx_q.empty()):
+#            rel_msg = self.relay_thread.rx_q.get()
+#            print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
+#            self._send_service_resp(rel_msg)
 
         #print "Querying relays"
         #rel_state, rel_int = self.relay_thread.read_all_relays()
