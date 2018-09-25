@@ -44,7 +44,6 @@ class Ethernet_Relay(threading.Thread):
             self.connect()
         while (not self._stop.isSet()):
             if self.connected:
-                print "connected!"
                 if (not self.tx_q.empty()): #Message for Relay Bank Received
                     msg = self.tx_q.get()
                     print '{:s} | {:s}'.format(self.name, msg)
@@ -65,29 +64,24 @@ class Ethernet_Relay(threading.Thread):
     def connect(self):
         try:
             self.logger.info('Attempting to telnet to relay bank: {:s}'.format(self.ip))
-            print "one"
             self.tn = telnetlib.Telnet(self.ip)
-            print "Object create"
-            self.tn.read_until("User Name: ")
-            print "Read use name"
-            self.tn.write(self.username + "\n")
-            print 'entered login'
+            self.tn.read_until("User Name:")
+            self.tn.write(self.username.encode("utf-8") + "\n")
             if self.password:
-                print "waiting for password"
-                self.tn.read_until("Password: ")
-                print "Found password"
-                self.tn.write(self.password + "\n")
-            print "waiting for prompt"
+                self.tn.read_until("Password:")
+                self.tn.write(self.password.encode("utf-8") + "\n")
             resp = self.tn.read_until('>')
-            print "Found prompt"
-            print resp
+#            print resp
             self.logger.info('Succesful telnet to relay bank: {:s}'.format(self.ip))
             self.connected = True
             print 'Connected!'
         except Exception as e:
             print str(e)
             self.logger.info('Failed to telnet to relay bank: {:s}'.format(self.ip))
+            self.logger.warning(str(e))
             self.connected = False
+            # Close the telnet session since an error happened
+            self.tn.close()
 
     def disconnect(self):
         pass
@@ -112,6 +106,8 @@ class Ethernet_Relay(threading.Thread):
     def stop(self):
         print '{:s} Terminating...'.format(self.name)
         self.logger.info('{:s} Terminating...'.format(self.name))
+        # Close the telnet connection
+        self.tn.close()
         self._stop.set()
 
     def stopped(self):
