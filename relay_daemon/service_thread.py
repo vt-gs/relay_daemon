@@ -31,6 +31,7 @@ class Consumer(BrokerConsumer):
     def get_connection_state(self):
         return self.connected
 
+
 class Producer(BrokerProducer):
     def __init__(self, cfg, loggername=None):
         super(Producer, self).__init__(cfg, loggername)
@@ -70,7 +71,7 @@ class Service_Thread(threading.Thread):
 
         #Start consumer
         self.consume_thread.start()
-        #star producer
+        #start producer
         self.produce_thread.start()
 
         while (not self._stop.isSet()):
@@ -79,7 +80,7 @@ class Service_Thread(threading.Thread):
             else:
                 self.connected = False
 
-            print self.connected
+#            print self.connected
 
             if self.connected:
                 if (not self.consumer.q.empty()): #received a message on command q
@@ -90,7 +91,7 @@ class Service_Thread(threading.Thread):
                     self.producer.send(tx_msg)
             else:
                 print "Waiting for connection to rabbitmq broker..."
-                time.sleep(2)
+#                time.sleep(1)
 
 
             time.sleep(0.01) #needed to throttle
