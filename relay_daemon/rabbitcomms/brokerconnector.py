@@ -88,6 +88,7 @@ class BrokerConnector(object):
         established.
         """
         self.connected = True
+        print "Connection to rabbitmq server: {:s}:{:d} has been established...".format(self.cfg['ip'], self.cfg['port'])
         if self.loggername is not None:
             self.logger.debug('Connection opened')
         self.add_on_connection_close_callback()
