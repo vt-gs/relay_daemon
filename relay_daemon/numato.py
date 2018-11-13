@@ -50,7 +50,7 @@ class Ethernet_Relay(threading.Thread):
                     if 'READ' in msg:
                         print "Time to read!"
                         self.read_all_relays()
-                        self.rx_q.put(self.state)
+#                        self.rx_q.put(self.state)
             else:
                 time.sleep(5)
                 print "Trying to reconnect..."
@@ -88,14 +88,39 @@ class Ethernet_Relay(threading.Thread):
 
     def read_relay(self, rel_num):
         """Read Relay status for given relay number"""
-        pass
+        relay_number = "2"
+        print relay_number
+        print type(relay_number)
+
+        self.tn.write(("relay on " + str(relay_number) + "\r\n").encode())
+        print "Relay ON " + relay_number
+        time.sleep(1)
+        print self.tn.read_eager()
+
+        self.tn.write(b"relay read "+ str(relay_number).encode("ascii") + b"\r\n")
+        time.sleep(1)
+        resp = self.tn.read_eager()
+        print "\nRelay read " + relay_number + ":" + re.split(br'[&>]', resp)[0].decode()
 
     def read_all_relays(self):
-        msg = "relay readall\n"
-        self.tn.write(msg)
-        resp = self.tn.read_until('>').strip('\r\n>')
-        self.state = int(resp)
-        return self.state
+
+        print "Reading all"
+        msg = "relay readall"
+        self.tn.write(msg + "\r\n".encode())
+        time.sleep(1)
+        print self.tn.read_eager()
+#        resp = self.tn.read_until('>')
+#        print resp
+#        print self.tn.read_some()
+#        print self.tn.read_very_eager()
+#        print self.tn.read_eager()
+#        print self.tn.read_lazy()
+#        print self.tn.read_very_lazy()
+#        print self.tn.expect(['>'])
+
+#        resp = self.tn.read_until('>').strip('\r\n>')
+#        self.state = int(resp)
+#        return resp
 
     def set_relay(self, rel_num):
         pass
