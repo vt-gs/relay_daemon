@@ -108,7 +108,11 @@ class Ethernet_Relay(threading.Thread):
         msg = "relay readall"
         self.tn.write(msg + "\r\n".encode())
         time.sleep(1)
-        print self.tn.read_eager()
+        resp = self.tn.read_eager().splitlines()[0]
+        print resp
+
+        self.rx_q.put(resp)
+
 #        resp = self.tn.read_until('>')
 #        print resp
 #        print self.tn.read_some()
