@@ -86,7 +86,7 @@ class Service_Thread(threading.Thread):
                 if (not self.consumer.q.empty()): #received a message on command q
                     rx_msg = self.consumer.q.get()
                     self.rx_q.put(rx_msg)
-                elif (not self.tx_q.empty()):#essage to send
+                elif (not self.tx_q.empty()): # message to send
                     tx_msg = self.tx_q.get()
                     self.producer.send(tx_msg)
             else:
