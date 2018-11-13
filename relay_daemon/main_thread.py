@@ -68,7 +68,8 @@ class Main_Thread(threading.Thread):
 
 
     def _send_service_resp(self,msg):
-        self.service_thread._send_resp(msg)
+#        self.service_thread._send_resp(msg)
+        self.service_thread.tx_q.put(msg)
 
     def _handle_state_boot(self):
         #Daemon activating for the first time
@@ -106,10 +107,10 @@ class Main_Thread(threading.Thread):
             msg = self.service_thread.rx_q.get()
             print '{:s} | Service Thread RX Message: {:s}'.format(self.name, msg)
             self.relay_thread.tx_q.put(msg)
-#        if (not self.relay_thread.rx_q.empty()):
-#            rel_msg = self.relay_thread.rx_q.get()
-#            print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
-#            self._send_service_resp(rel_msg)
+        if (not self.relay_thread.rx_q.empty()):
+            rel_msg = self.relay_thread.rx_q.get()
+            print '{:s} | Relay rx_q message: {:s}'.format(self.name, str(rel_msg))
+            self._send_service_resp(rel_msg)
 
         #print "Querying relays"
         #rel_state, rel_int = self.relay_thread.read_all_relays()
