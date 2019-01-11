@@ -48,9 +48,16 @@ class Ethernet_Relay(threading.Thread):
                     msg = self.tx_q.get()
                     print '{:s} | {:s}'.format(self.name, msg)
                     if 'READ' in msg:
+# TO DO HERE, ADD ABILITY TO READ JUST ONE RELAY
+
                         print "Time to read!"
                         self.read_all_relays()
 #                        self.rx_q.put(self.state)
+                    elif 'WRITE' in msg:
+                        print "Time to write!"
+                        msg_parse = msg.split(':')[1].split(',')
+                        hex_val = msg_parse[2]
+                        self.write_all_relays(hex_val)
             else:
                 time.sleep(5)
                 print "Trying to reconnect..."
@@ -109,6 +116,7 @@ class Ethernet_Relay(threading.Thread):
         self.tn.write(msg + "\r\n".encode())
         time.sleep(1)
         resp = self.tn.read_eager().splitlines()[0]
+        resp = "RELAY,STATUS," + resp
         print resp
 
         self.rx_q.put(resp)
@@ -129,8 +137,16 @@ class Ethernet_Relay(threading.Thread):
     def set_relay(self, rel_num):
         pass
 
-    def relay_write_all(self):
-        pass
+    def write_all_relays(self, hex_val):
+        print "We'll be reading soon"
+        print hex_val
+        msg = "relay writeall "+hex_val
+        print msg
+        self.tn.write(msg + "\r\n".encode())
+        time.sleep(1)
+        print "WROTE?"
+        resp = self.tn.read_eager()
+        print resp
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)
