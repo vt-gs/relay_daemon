@@ -25,7 +25,7 @@ class Consumer(BrokerConsumer):
         self.q  = Queue() #place received messages here.
 
     def process_message(self, method, properties, body):
-        msg = 'Received message {:s} from {:s} {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
+        msg = 'Received message {:s} from {:s} : {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
         self.q.put(msg)
 
     def get_connection_state(self):
