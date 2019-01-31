@@ -147,6 +147,12 @@ class Ethernet_Relay(threading.Thread):
         print "WROTE?"
         resp = self.tn.read_eager()
         print resp
+        # Let's "return" a status of the relays written
+        # TO DO here is probably a check first that the
+        # relays were actually written to properly.  But
+        # that may be a solution for something that's
+        # not yet a problem.
+        self.read_all_relays()
 
     def stop(self):
         print '{:s} Terminating...'.format(self.name)
