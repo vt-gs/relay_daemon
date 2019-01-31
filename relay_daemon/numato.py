@@ -138,15 +138,15 @@ class Ethernet_Relay(threading.Thread):
         pass
 
     def write_all_relays(self, hex_val):
-        print "We'll be reading soon"
-        print hex_val
+#        print "We'll be reading soon"
+#        print hex_val
         msg = "relay writeall "+hex_val
-        print msg
+#        print msg
         self.tn.write(msg + "\r\n".encode())
         time.sleep(1)
-        print "WROTE?"
+#        print "WROTE?"
         resp = self.tn.read_eager()
-        print resp
+#        print resp
         # Let's "return" a status of the relays written
         # TO DO here is probably a check first that the
         # relays were actually written to properly.  But
