@@ -30,7 +30,8 @@ class Main_Thread(threading.Thread):
         self.state  = 'BOOT' #BOOT, STANDBY, ACTIVE, WX, FAULT
         self.msg_cnt = 0
         #setup logger
-        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts=self.startup_ts, log_path=self.log_path)
+#        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts=self.startup_ts, log_path=self.log_path)
+        self.main_log_fh = setup_logger(self.ssid, level= self.log_level, ts="testing", log_path=self.log_path)
         self.logger = logging.getLogger(self.ssid) #main logger
 
     def run(self):
@@ -50,11 +51,13 @@ class Main_Thread(threading.Thread):
                     self._handle_state_fault()
                 time.sleep(0.01) #Needed to throttle CPU
 
+		time.sleep(0.1)
+
         except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
             print "\nCaught CTRL-C, Killing Threads..."
             self.logger.warning('Caught CTRL-C, Terminating Threads...')
-            #self.relay_thread.stop()
-            #self.relay_thread.join() # wait for the thread to finish what it's doing
+            self.relay_thread.stop()
+            self.relay_thread.join() # wait for the thread to finish what it's doing
             self.service_thread.stop()
             self.service_thread.join() # wait for the thread to finish what it's doing
             self.logger.warning('Terminating {:s}...'.format(self.name))
@@ -65,21 +68,28 @@ class Main_Thread(threading.Thread):
 
 
     def _send_service_resp(self,msg):
-        self.service_thread._send_resp(msg)
+#        self.service_thread._send_resp(msg)
+        self.service_thread.tx_q.put(msg)
 
     def _handle_state_boot(self):
         #Daemon activating for the first time
         #Activate all threads
         #State Change:  BOOT --> STANDBY
         #All Threads Started
-        if self._init_threads():#if all threads activate succesfully
+        if self._init_threads(): #if all threads activate succesfully
+            print "All threads launched, switching to STANDBY state"
             self.set_state('STANDBY', 'Successfully Launched Threads')
         else:
+            print "All threads did not launch correctly, switching to FAULT state"
             self.set_state('FAULT', 'Failed to Launch Threads')
 
     def _handle_state_standby(self):
         if not self.service_thread.get_connection_state():
             self.set_state('FAULT', 'Service Thread Not connected to Broker')
+        else:
+            time.sleep(2)
+            print "Successfully connected, switching to ACTIVE state"
+            self.set_state('ACTIVE', 'Successfully connected to broker')
 
         #if (not self.tx_q.empty()): #received a messages
             #msg = self.tx_q.get()
@@ -93,8 +103,8 @@ class Main_Thread(threading.Thread):
         #Describe ACTIVE here
         #read uplink Queue from C2 Radio thread
         #print 'ACTIVE'
-        if (not self.service_thread.q.empty()):
-            msg = self.service_thread.q.get()
+        if (not self.service_thread.rx_q.empty()):
+            msg = self.service_thread.rx_q.get()
             print '{:s} | Service Thread RX Message: {:s}'.format(self.name, msg)
             self.relay_thread.tx_q.put(msg)
         if (not self.relay_thread.rx_q.empty()):
@@ -133,9 +143,9 @@ class Main_Thread(threading.Thread):
     def _init_threads(self):
         try:
             #Initialize Relay Thread
-            #self.logger.info('Setting up Relay_Thread')
-            #self.relay_thread = numato.Ethernet_Relay(self.args)
-            #self.relay_thread.daemon = True
+            self.logger.info('Setting up Relay_Thread')
+            self.relay_thread = numato.Ethernet_Relay(self.ssid,self.cfg['relay'])
+            self.relay_thread.daemon = True
 
             #Initialize Server Thread
             self.logger.info('Setting up Service_Thread')
@@ -143,8 +153,8 @@ class Main_Thread(threading.Thread):
             self.service_thread.daemon = True
 
             #Launch threads
-            #self.logger.info('Launching Relay_Thread')
-            #self.relay_thread.start() #non-blocking
+            self.logger.info('Launching Relay_Thread')
+            self.relay_thread.start() #non-blocking
 
             self.logger.info('Launching Service_Thread')
             self.service_thread.start() #non-blocking

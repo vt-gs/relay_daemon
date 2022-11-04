@@ -25,11 +25,12 @@ class Consumer(BrokerConsumer):
         self.q  = Queue() #place received messages here.
 
     def process_message(self, method, properties, body):
-        msg = 'Received message {:s} from {:s} {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
+        msg = 'Received message {:s} from {:s} : {:s}'.format(str(method.delivery_tag), str(properties.app_id), str(body))
         self.q.put(msg)
 
     def get_connection_state(self):
         return self.connected
+
 
 class Producer(BrokerProducer):
     def __init__(self, cfg, loggername=None):
@@ -46,7 +47,7 @@ class Service_Thread(threading.Thread):
         self.ssid   = ssid
         self.cfg    = cfg
 
-        self.rx_q   = Queue() #MEssages received from Broker, command
+        self.rx_q   = Queue() #Messages received from Broker, command
         self.tx_q   = Queue() #Messages sent to broker, feedback
 
         self.consumer = Consumer(cfg, loggername=self.ssid)
@@ -70,7 +71,7 @@ class Service_Thread(threading.Thread):
 
         #Start consumer
         self.consume_thread.start()
-        #star producer
+        #start producer
         self.produce_thread.start()
 
         while (not self._stop.isSet()):
@@ -79,17 +80,21 @@ class Service_Thread(threading.Thread):
             else:
                 self.connected = False
 
-            print self.connected
+#            print self.connected
 
             if self.connected:
                 if (not self.consumer.q.empty()): #received a message on command q
                     rx_msg = self.consumer.q.get()
                     self.rx_q.put(rx_msg)
-                elif (not self.tx_q.empty()):#essage to send
+                elif (not self.tx_q.empty()): # message to send
                     tx_msg = self.tx_q.get()
                     self.producer.send(tx_msg)
+            else:
+                print "Waiting for connection to rabbitmq broker..."
+#                time.sleep(1)
 
-            time.sleep(0.01)#needed to throttle
+
+            time.sleep(0.01) #needed to throttle
 
         self.consumer.stop_consuming()
         self.producer.stop_producing()
